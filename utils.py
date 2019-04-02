@@ -1,5 +1,5 @@
 import cv2
-
+import numpy as np
 
 def imshow(img, name='Image', norm=False, resize=False):
     """Display an image
@@ -26,3 +26,21 @@ def imshow(img, name='Image', norm=False, resize=False):
     cv2.imshow(name, img.astype('uint8'))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+def drawLines(image, lines):
+    #Lijnen tekenen
+    for i in lines:
+        print(i)
+        for rho, theta in i:
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a*rho
+            y0 = b*rho
+            x1 = int(x0+1000*(-b))
+            y1 = int(y0 + 1000*(a))
+            x2 = int(x0 - 1000*(-b))
+            y2 = int(y0 -1000*(a))
+
+            cv2.line(image, (x1, y1), (x2, y2), (0, 0, 0), 2)
+
+    return image

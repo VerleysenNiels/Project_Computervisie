@@ -30,7 +30,6 @@ def imshow(img, name='Image', norm=False, resize=False):
 def drawLines(image, lines):
     #Lijnen tekenen
     for i in lines:
-        print(i)
         for rho, theta in i:
             a = np.cos(theta)
             b = np.sin(theta)
@@ -44,3 +43,16 @@ def drawLines(image, lines):
             cv2.line(image, (x1, y1), (x2, y2), (0, 0, 0), 2)
 
     return image
+
+def overlay_points(img, points):
+    out = img
+    for i, point in enumerate(points):
+        out = cv2.circle(out,
+                         tuple(point[0]),  # center
+                         img.shape[0]//200,                 # radius
+                         ((47 * i) % 255, (67 * i) %
+                          255, (97 * i) % 255),  # random color
+                         img.shape[0]//200,
+                         lineType=cv2.FILLED
+                         )
+    return out

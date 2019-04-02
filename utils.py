@@ -26,3 +26,17 @@ def imshow(img, name='Image', norm=False, resize=False):
     cv2.imshow(name, img.astype('uint8'))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+
+def overlay_points(img, points):
+    out = img
+    for i, point in enumerate(points):
+        out = cv2.circle(out,
+                         tuple(point[0]),  # center
+                         img.shape[0]//200,                 # radius
+                         ((47 * i) % 255, (67 * i) %
+                          255, (97 * i) % 255),  # random color
+                         img.shape[0]//200,
+                         lineType=cv2.FILLED
+                         )
+    return out

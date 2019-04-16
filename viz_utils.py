@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import math_utils
+
 
 def imshow(img, name='Image', norm=False, resize=False):
     """Display an image
@@ -27,28 +29,28 @@ def imshow(img, name='Image', norm=False, resize=False):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-def drawLines(image, lines):
-    #Lijnen tekenen
+
+def overlay_lines(img, lines):
+    """Overlay lines in polar coordinates on an image
+    """
     for i in lines:
         for rho, theta in i:
-            a = np.cos(theta)
-            b = np.sin(theta)
-            x0 = a*rho
-            y0 = b*rho
-            x1 = int(x0+1000*(-b))
-            y1 = int(y0 + 1000*(a))
-            x2 = int(x0 - 1000*(-b))
-            y2 = int(y0 -1000*(a))
+            x1, y1, x2, y2 = math_utils.to_carthesian(rho, theta)
+            cv2.line(img, (x1, y1), (x2, y2), (0, 0, 0), 2)
+    return img
 
-            cv2.line(image, (x1, y1), (x2, y2), (0, 0, 0), 2)
 
+def overlay_lines_cartesian(image, lines):
+    for line in lines:
+        cv2.line(image, (line[0], line[1]), (line[2], line[3]), (0, 255, 0), 2)
     return image
+
 
 def overlay_points(img, points):
     out = img
     for i, point in enumerate(points):
         out = cv2.circle(out,
-                         tuple(point[0]),  # center
+                         tuple(point),  # center
                          img.shape[0]//200,                 # radius
                          ((47 * i) % 255, (67 * i) %
                           255, (97 * i) % 255),  # random color

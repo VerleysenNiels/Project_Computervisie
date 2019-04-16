@@ -85,16 +85,18 @@ if __name__ == "__main__":
     # testCorners = viz_utils.overlay_points(img, corners)
     # viz_utils.imshow(testCorners, resize=True)
 
-    for img in io_utils.imread_folder('images/query_paintings_20'):
-        viz_utils.imshow(img[1])
+    for path, img in io_utils.imread_folder('images/query_paintings_20'):
+        viz_utils.imshow(img)
         # contour_img = detect_contours(img)
-        lines = detect_lines(img[1])
+        lines = detect_lines(img)
         lines = math_utils.eliminate_duplicates(lines, 5)
-        viz_utils.overlay_lines_cartesian(img[1], lines)
-      
+        print(lines)
+        lines = math_utils.bounding_rect(lines)
+        viz_utils.overlay_lines_cartesian(img, lines)
+
         points = []
         for line1, line2 in combinations(lines, 2):
             points.append(math_utils.intersections(line1, line2))
 
-        viz_utils.overlay_points(img[1], points)
-        viz_utils.imshow(img[1], name=img[0])
+        viz_utils.overlay_points(img, points)
+        viz_utils.imshow(img, name=path)

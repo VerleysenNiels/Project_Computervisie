@@ -1,5 +1,6 @@
 import numpy as np
 from itertools import combinations
+import random
 
 
 def to_cartesian(line):
@@ -67,3 +68,9 @@ def intersections(a, b):
         return int(x), int(y)
     else:
         return -1, -1
+
+
+def bounding_rect(lines):
+    # TODO: Find best 4 lines to perform
+    # perspective transform.
+    return random.choices(lines, k=4)

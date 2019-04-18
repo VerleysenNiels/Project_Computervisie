@@ -1,10 +1,12 @@
 import numpy as np
 from itertools import combinations
 import random
+import logging
 
 
 def to_polar(line):
-    """Convert lines in Cartesian system to lines in polar system."""
+    """Convert lines in Cartesian system to lines in polar system.
+    """
     x1, y1 = line[0], line[1]
     x2, y2 = line[2], line[3]
 
@@ -14,11 +16,12 @@ def to_polar(line):
     rho = np.abs(x2*y1 - y2*x1) / np.sqrt(dy ** 2 + dx ** 2)
     theta = np.arctan2(dy, dx) + np.pi / 2
 
-    return (rho, theta)
+    return rho, theta
 
 
 def to_cartesian(line):
-    """Convert lines in polar system to lines in Cartesian system."""
+    """Convert lines in polar system to lines in Cartesian system.
+    """
     rho, theta = line[0], line[1]
     a = np.cos(theta)
     b = np.sin(theta)
@@ -62,13 +65,20 @@ def intersections(a, b):
              (x1 - x2) * (x3 * y4 - y3 * x4)) / d
         y = ((x1 * y2 - y1 * x2) * (y3 - y4) -
              (y1 - y2) * (x3 * y4 - y3 * x4)) / d
-        return int(x), int(y)
+        return x, y
     else:
         return -1, -1
 
 
 def bounding_rect(lines, theta_threshold=.1):
-    assert len(lines) >= 4
+    """Pick 4 lines which are most likely to be the edges of the painting,
+    used for perspective correction
+    """
+
+    if len(lines) < 4:
+        logging.error(
+            'Perspective transform: Not enough lines found: {}.'.format(len(lines)))
+        return []
 
     straight = np.pi / 2
     parallel = []
@@ -99,8 +109,10 @@ def bounding_rect(lines, theta_threshold=.1):
     parallel[best].sort(key=lambda x: x[1], reverse=True)
     perpendicular[best].sort(key=lambda x: x[1], reverse=True)
 
-    assert len(parallel[best]) >= 1, 'No parallel pairs found'
-    assert len(perpendicular[best]) >= 2, 'No perpendicular pairs found'
+    if len(parallel[best]) < 1 or len(perpendicular[best]) < 2:
+        logging.error(
+            'Perspective transform: not enough parallel/perpendicular lines found.')
+        return []
 
     l1 = lines[best]
     l2 = lines[parallel[best][0][0]]

@@ -3,52 +3,9 @@ import numpy as np
 import viz_utils
 import io_utils
 import math_utils
+from perspective import perspective_transform
 from itertools import combinations
-
-
-def parametricIntersect(r1, t1, r2, t2):
-    """Calculate intersection between two lines in rho theta form
-    """
-    ct1 = np.cos(t1)     # matrix element a
-    st1 = np.sin(t1)     # b
-    ct2 = np.cos(t2)     # c
-    st2 = np.sin(t2)     # d
-    d = ct1*st2-st1*ct2        # determinative (rearranged matrix for inverse)
-    if d != 0.0:
-        x = int((st2*r1-st1*r2)/d)
-        y = int((-ct2*r1+ct1*r2)/d)
-        return((x, y))
-    else:  # lines are parallel and will NEVER intersect!
-        return(None)
-
-
-def detect_lines_old(img):
-    # img = cv2.resize(img, (int(img.shape[1]/10), int(img.shape[0]/10)))  NO SECOND RESIZE
-    viz_utils.imshow(img, resize=True)
-    canny = cv2.Canny(img, 200, 255)
-    viz_utils.imshow(canny, resize=True)
-    # STILL NOT REALLY WORKING
-    lines = cv2.HoughLines(canny, 10, (np.pi / 2), 15)
-
-    intersections = []
-    points = []  # TEST
-    if len(lines) < 2:
-        print("Less then two lines found")
-    else:
-        for line1 in range(0, len(lines)-1):
-            for line2 in range(line1+1, len(lines)):
-                point = parametricIntersect(
-                    lines[line1][0][0], lines[line1][0][1], lines[line2][0][0], lines[line2][0][1])
-                if point is not None:
-                    intersections.append([line1, line2, point[0], point[1]])
-                    points.append([point])
-
-    testLines = viz_utils.drawLines(img, lines)
-    testPoints = viz_utils.overlay_points(testLines, points)
-
-    viz_utils.imshow(testPoints, resize=True)
-
-    return lines
+import logging
 
 
 def detect_lines(img, threshold=128, canny_treshold=170):
@@ -64,46 +21,59 @@ def detect_lines(img, threshold=128, canny_treshold=170):
 
 
 def detect_contours(img):
+    """Detect contours using findContours
+    """
     contours, hierarchy = cv2.findContours(
         img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cnt = contours[0]
     epsilon = 0.1*cv2.arcLength(cnt, True)
     approx = cv2.approxPolyDP(cnt, epsilon, True)
-    print(approx.shape)
     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     cv2.drawContours(img, cnt, -1, (255, 0, 0), 5)
     viz_utils.imshow(img, resize=False)
     return img
 
 
-def detect_corners(img, maxCorners=0):
-    return cv2.goodFeaturesToTrack(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY),
-                                   maxCorners, .3, 15, useHarrisDetector=True)
+def detect_perspective(img):
+    """Automatically detect perspective points, used in perspective
+    transformation.
 
+    Returns:
+        An array of 4 points. If the perspective cannot be detected, the array
+        is empty
+    """
+    all_lines = detect_lines(img)  # Detect all lines
+    lines = math_utils.bounding_rect(all_lines)  # Pick best 4 lines
 
-if __name__ == "__main__":
-    # img = cv2.imread('images/single_paintings/still_life/20190217_101231.jpg')
-    # corners = detect_corners(img)
-    # testCorners = viz_utils.overlay_points(img, corners)
-    # viz_utils.imshow(testCorners, resize=True)
+    if len(lines) < 4:
+        return []
 
-    for path, img in io_utils.imread_folder('images\dataset_pictures_msk_samsungA3_2016\Zaal_B'):
-        img = cv2.GaussianBlur(img, (3, 3), 2)
-        viz_utils.imshow(img, resize=True)
-        # img = detect_contours(img)
+    points = np.int32([
+        math_utils.intersections(lines[0], lines[2]),
+        math_utils.intersections(lines[1], lines[2]),
+        math_utils.intersections(lines[1], lines[3]),
+        math_utils.intersections(lines[0], lines[3]),
+    ])  # Calculate intersection points
 
-        lines = detect_lines(img)
+    if logging.root.level == logging.DEBUG:
         viz_utils.imshow(
-            viz_utils.overlay_lines_cartesian(img, lines), name=path, resize=True)
-        # lines = math_utils.eliminate_duplicates(lines)
-        # viz_utils.imshow(
-        #     viz_utils.overlay_lines_cartesian(img, lines), name=path)
-        lines = math_utils.bounding_rect(lines)
-        img = viz_utils.overlay_lines_cartesian(img, lines)
+            viz_utils.overlay_lines_cartesian(img, all_lines), resize=True)
+        pts = points.reshape((-1, 1, 2))
+        img_lines = cv2.polylines(np.copy(img), [pts], True, (255, 255, 0), 2)
+        img_lines = viz_utils.overlay_points(img_lines, points)
+        viz_utils.imshow(img_lines, resize=True)
 
-        points = []
-        for line1, line2 in combinations(lines, 2):
-            points.append(math_utils.intersections(line1, line2))
+    return points
 
-        img = viz_utils.overlay_points(img, points)
-        viz_utils.imshow(img, name=path, resize=True)
+
+def equalize_histogram(img):
+    """Equalize the histogram of an image. This often gives better results
+    since the pixel data is more spread out.
+    """
+
+    # Convert BGR image to YUV (luminance - color - color)
+    img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+    # Equalize luminance channel
+    img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
+    # Convert back to BGR
+    return cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)

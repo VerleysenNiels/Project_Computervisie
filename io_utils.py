@@ -12,7 +12,9 @@ def imread(path, resize=True, bw=False):
             img, (0, 0),
             fx=1080 / img.shape[0],
             fy=1080 / img.shape[0],
-            interpolation=cv2.INTER_NEAREST)
+            interpolation=cv2.INTER_AREA)
+    if bw:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     return img
 
 

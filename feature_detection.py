@@ -51,32 +51,34 @@ def detect_lines_old(img):
     return lines
 
 
-def detect_lines(img):
+def detect_lines(img, threshold=128, canny_treshold=170):
     """ Detect lines using HoughLinesP
     """
-    canny = cv2.Canny(img, 200, 255)
-    viz_utils.imshow(canny)
-    lines = cv2.HoughLinesP(canny, 1, (np.pi / 180), 128,
-                            minLineLength=10, maxLineGap=50)
-    return np.reshape(lines, (-1, 4))
+    canny = cv2.Canny(img, 2 * canny_treshold // 3, canny_treshold)
+    lines = cv2.HoughLinesP(canny, 1, (np.pi / 180), threshold,
+                            minLineLength=50, maxLineGap=150)
+    try:
+        return np.reshape(lines, (-1, 4))
+    except:
+        return np.array([])
 
 
 def detect_contours(img):
-    # img = cv2.resize(img, (int(img.shape[1] / 10), int(img.shape[0] / 10)))
-    viz_utils.imshow(img, resize=False)
-    canny = cv2.Canny(img, 200, 255)
-    viz_utils.imshow(canny, resize=False)
     contours, hierarchy = cv2.findContours(
-        canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(img, contours, -1, (0, 0, 0), 1)
+        img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cnt = contours[0]
+    epsilon = 0.1*cv2.arcLength(cnt, True)
+    approx = cv2.approxPolyDP(cnt, epsilon, True)
+    print(approx.shape)
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    cv2.drawContours(img, cnt, -1, (255, 0, 0), 5)
     viz_utils.imshow(img, resize=False)
     return img
 
 
 def detect_corners(img, maxCorners=0):
-    return cv2.goodFeaturesToTrack(
-        cv2.cvtColor(img, cv2.COLOR_BGR2GRAY),
-        maxCorners, .3, 15, useHarrisDetector=True)
+    return cv2.goodFeaturesToTrack(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY),
+                                   maxCorners, .3, 15, useHarrisDetector=True)
 
 
 if __name__ == "__main__":
@@ -85,18 +87,23 @@ if __name__ == "__main__":
     # testCorners = viz_utils.overlay_points(img, corners)
     # viz_utils.imshow(testCorners, resize=True)
 
-    for path, img in io_utils.imread_folder('images/query_paintings_20'):
-        viz_utils.imshow(img)
-        # contour_img = detect_contours(img)
+    for path, img in io_utils.imread_folder('images\dataset_pictures_msk_samsungA3_2016\Zaal_B'):
+        img = cv2.GaussianBlur(img, (3, 3), 2)
+        viz_utils.imshow(img, resize=True)
+        # img = detect_contours(img)
+
         lines = detect_lines(img)
-        lines = math_utils.eliminate_duplicates(lines, 5)
-        print(lines)
+        viz_utils.imshow(
+            viz_utils.overlay_lines_cartesian(img, lines), name=path, resize=True)
+        # lines = math_utils.eliminate_duplicates(lines)
+        # viz_utils.imshow(
+        #     viz_utils.overlay_lines_cartesian(img, lines), name=path)
         lines = math_utils.bounding_rect(lines)
-        viz_utils.overlay_lines_cartesian(img, lines)
+        img = viz_utils.overlay_lines_cartesian(img, lines)
 
         points = []
         for line1, line2 in combinations(lines, 2):
             points.append(math_utils.intersections(line1, line2))
 
-        viz_utils.overlay_points(img, points)
-        viz_utils.imshow(img, name=path)
+        img = viz_utils.overlay_points(img, points)
+        viz_utils.imshow(img, name=path, resize=True)

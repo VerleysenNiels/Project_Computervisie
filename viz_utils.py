@@ -20,8 +20,8 @@ def imshow(img, name='Image', norm=False, resize=False):
     if resize:
         img = cv2.resize(
             img, (0, 0),
-            fx=500 / img.shape[0],
-            fy=500 / img.shape[0],
+            fx=720 / img.shape[0],
+            fy=720 / img.shape[0],
             interpolation=cv2.INTER_NEAREST)
     if norm:
         img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
@@ -40,14 +40,15 @@ def overlay_lines(img, lines):
     return img
 
 
-def overlay_lines_cartesian(image, lines):
+def overlay_lines_cartesian(img, lines):
+    out = np.copy(img)
     for line in lines:
-        cv2.line(image, (line[0], line[1]), (line[2], line[3]), (0, 255, 0), 2)
-    return image
+        cv2.line(out, (line[0], line[1]), (line[2], line[3]), (0, 255, 0), 2)
+    return out
 
 
 def overlay_points(img, points):
-    out = img
+    out = np.copy(img)
     for i, point in enumerate(points):
         out = cv2.circle(out,
                          tuple(point),  # center

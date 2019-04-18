@@ -5,18 +5,7 @@ import math_utils
 
 def imshow(img, name='Image', norm=False, resize=False):
     """Display an image
-
-    Arguments:
-        img  -- The image to be shown. If the dtype is `float` or `signed`,
-            the `norm` should be set to true
-
-
-    Keyword Arguments:
-        name {str} -- The name of the window (default: {'Image'})
-        norm {bool} -- Normalize the image between 0 and 255 (default: {False})
-        resize {bool} -- Resize the image to be 500px wide (default: {False})
     """
-
     if resize:
         img = cv2.resize(
             img, (0, 0),
@@ -33,14 +22,18 @@ def imshow(img, name='Image', norm=False, resize=False):
 def overlay_lines(img, lines):
     """Overlay lines in polar coordinates on an image
     """
+    out = np.copy(img)
     for i in lines:
         for rho, theta in i:
             x1, y1, x2, y2 = math_utils.to_carthesian(rho, theta)
-            cv2.line(img, (x1, y1), (x2, y2), (0, 0, 0), 2)
-    return img
+            cv2.line(out, (x1, y1), (x2, y2), (0, 0, 0), 2)
+    return out
 
 
 def overlay_lines_cartesian(img, lines):
+    """Overlay lines in Cartesian coordinates on an image
+    lines: array containing (x1, y1, x2, y2) quadruplets
+    """
     out = np.copy(img)
     for line in lines:
         cv2.line(out, (line[0], line[1]), (line[2], line[3]), (0, 255, 0), 2)
@@ -48,11 +41,13 @@ def overlay_lines_cartesian(img, lines):
 
 
 def overlay_points(img, points):
+    """Overlay points on an image
+    """
     out = np.copy(img)
     for i, point in enumerate(points):
         out = cv2.circle(out,
-                         tuple(point),  # center
-                         img.shape[0]//200,                 # radius
+                         tuple(point),       # center
+                         img.shape[0]//200,  # radius
                          ((47 * i) % 255, (67 * i) %
                           255, (97 * i) % 255),  # random color
                          img.shape[0]//200,

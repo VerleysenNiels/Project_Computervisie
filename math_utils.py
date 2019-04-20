@@ -70,7 +70,7 @@ def intersections(a, b):
         return -1, -1
 
 
-def bounding_rect(lines, theta_threshold=.1):
+def bounding_rect(lines, corners, theta_threshold=.1):
     """Pick 4 lines which are most likely to be the edges of the painting,
     used for perspective correction
     """
@@ -114,6 +114,7 @@ def bounding_rect(lines, theta_threshold=.1):
             'Perspective transform: not enough parallel/perpendicular lines found.')
         return []
 
+    # TODO: integrate `corners` in voting system somehow
     l1 = lines[best]
     l2 = lines[parallel[best][0][0]]
     l3 = lines[perpendicular[best][0][0]]

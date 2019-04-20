@@ -16,6 +16,8 @@ def order_points(pts):
 
 
 def perspective_transform(img, points):
+    """Transform an image's perspective given 4 (unordered) points
+    """
     if len(points) < 4:
         return img
 

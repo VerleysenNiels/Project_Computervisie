@@ -45,7 +45,7 @@ class PaintingClassifier(object):
 
         for path, img in io_utils.imread_folder(args.directory):
             img = feature_detection.equalize_histogram(img)
-
+            img = feature_detection.dilate(img)
             points = feature_detection.detect_perspective(img)
             img = perspective.perspective_transform(img, points)
 

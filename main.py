@@ -54,10 +54,10 @@ class PaintingClassifier(object):
 
             # Write to DB folder
             label = os.path.basename(os.path.dirname(path))
-            io_utils.imwrite(
-                os.path.join("db", label, os.path.basename(path)),
-                img
-            )
+            out_path = os.path.join(
+                'db', label.lower(), os.path.basename(path))
+            logging.info('Writing to ' + out_path)
+            io_utils.imwrite(out_path, img)
 
     def train(self):
         parser = argparse.ArgumentParser(description="")

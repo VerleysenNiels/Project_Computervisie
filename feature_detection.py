@@ -108,5 +108,5 @@ def equalize_histogram(img):
     return cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
 
 def dilate(img):
-    img = cv2.dilate(img, cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7)))
-    return img
+    img2 = cv2.dilate(img, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)))
+    return img2

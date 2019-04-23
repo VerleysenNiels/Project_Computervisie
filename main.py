@@ -10,7 +10,7 @@ import feature_detection
 import perspective
 import logging
 
-level = logging.DEBUG
+level = logging.INFO
 
 
 class PaintingClassifier(object):
@@ -19,7 +19,8 @@ class PaintingClassifier(object):
         logging.basicConfig(
             format="[%(levelname)s] %(asctime)s - %(message)s", level=level
         )
-        parser = argparse.ArgumentParser(description="Locate a painting in the MSK")
+        parser = argparse.ArgumentParser(
+            description="Locate a painting in the MSK")
         parser.add_argument(
             "command", choices=["build", "train", "eval"], help="Subcommand to run"
         )
@@ -54,7 +55,7 @@ class PaintingClassifier(object):
             # Write to DB folder
             label = os.path.basename(os.path.dirname(path))
             io_utils.imwrite(
-                os.path.join("db", label + "--" + os.path.basename(path)), 
+                os.path.join("db", label, os.path.basename(path)),
                 img
             )
 

@@ -24,8 +24,8 @@ def perspective_transform(img, points):
     points = order_points(points)
 
     # Calculate destination rectangle
-    x_max, y_max = points.max(axis=0)
-    x_min, y_min = points.min(axis=0)
+    x_max, y_max = 500, 500  # points.max(axis=0)
+    x_min, y_min = 0, 0  # points.min(axis=0)
     dst = np.float32([
         [x_min, y_min],
         [x_max, y_min],

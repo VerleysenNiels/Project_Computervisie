@@ -8,7 +8,7 @@ from itertools import combinations
 import logging
 
 
-def detect_lines(img, threshold=128, canny_treshold=170):
+def detect_lines(img, threshold=128, canny_treshold=150):
     """ Detect lines using HoughLinesP
     """
     canny = cv2.Canny(img, 2 * canny_treshold // 3, canny_treshold)
@@ -58,6 +58,7 @@ def detect_corners(img):
         viz_utils.imshow(img_harris, resize=True)
     return corners
 
+
 def detect_perspective(img):
     """Automatically detect perspective points, used in perspective
     transformation.
@@ -67,12 +68,10 @@ def detect_perspective(img):
         is empty
     """
 
-    img = cv2.medianBlur(img, 15)
-
-    all_lines = detect_lines(img)  # Detect all lines
-    all_corners = detect_corners(img)
+    all_lines = detect_lines(cv2.medianBlur(img, 15))  # Detect all lines
+    # all_corners = detect_corners(img)
     lines = math_utils.bounding_rect(
-        all_lines, all_corners)  # Pick best 4 lines
+        all_lines, None)  # Pick best 4 lines
 
     if len(lines) < 4:
         return []

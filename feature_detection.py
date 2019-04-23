@@ -22,7 +22,9 @@ def detect_lines(img, threshold=128, canny_treshold=170):
 
 
 def detect_contours(img):
-    """Detect contours using findContours
+    """
+    NOT USED
+    Detect contours using findContours
     """
     contours, hierarchy = cv2.findContours(
         img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -30,7 +32,7 @@ def detect_contours(img):
     epsilon = 0.1 * cv2.arcLength(cnt, True)
     approx = cv2.approxPolyDP(cnt, epsilon, True)
     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    cv2.drawContours(img, cnt, -1, (255, 0, 0), 5)
+    cv2.drawContours(img, cnt, -1, (0, 0, 0), 5)
     viz_utils.imshow(img, resize=False)
     return img
 
@@ -56,7 +58,6 @@ def detect_corners(img):
         viz_utils.imshow(img_harris, resize=True)
     return corners
 
-
 def detect_perspective(img):
     """Automatically detect perspective points, used in perspective
     transformation.
@@ -65,6 +66,9 @@ def detect_perspective(img):
         An array of 4 points. If the perspective cannot be detected, the array
         is empty
     """
+
+    img = cv2.medianBlur(img, 15)
+
     all_lines = detect_lines(img)  # Detect all lines
     all_corners = detect_corners(img)
     lines = math_utils.bounding_rect(

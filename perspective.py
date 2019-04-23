@@ -16,7 +16,7 @@ def order_points(pts):
 
 
 def perspective_transform(img, points):
-    """Transform an image's perspective given 4 (unordered) points
+    """Transform an image's perspective given 4 (unordered) points and crop the image around it
     """
     if len(points) < 4:
         return img
@@ -33,4 +33,6 @@ def perspective_transform(img, points):
         [x_min, y_max],
     ])
     M = cv2.getPerspectiveTransform(points, dst)
-    return cv2.warpPerspective(img, M, img.shape[1::-1])
+    img = cv2.warpPerspective(img, M, img.shape[1::-1])
+    crop_img = img[int(y_min):int(y_max), int(x_min):int(x_max)]
+    return crop_img

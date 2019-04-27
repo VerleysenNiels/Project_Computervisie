@@ -86,6 +86,23 @@ class FeatureExtraction(object):
 
         return np.array([red, green, blue])
 
+    def extract_keypoints(self, img_gray):
+        #doesn't work as well if nfeatures < 300
+        orb = cv2.ORB_create(nfeatures=300)
+        keypoints, descriptors = orb.detectAndCompute(img_gray, None)
+        #each descriptor is 32 numbers, so that's 300*32 = 9600 more features
+        return descriptors.flatten()
+
+    def match_keypoints(self, descriptors_im, descriptors_db):
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        matches = bf.match(descriptors_im, descriptors_db)
+        matches = sorted(matches, key=lambda x: x.distance)
+        score = 0
+        for m in matches[:20]:
+            score += m.distance
+        #low score indicates good match
+        return score
+
 
 if __name__ == "__main__":
     logging.basicConfig(

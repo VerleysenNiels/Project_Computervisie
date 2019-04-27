@@ -7,8 +7,7 @@ import logging
 class RandomForestClassifier(object):
 
     def __init__(self):
-        self.classifier = RFC(
-            n_estimators=10, min_samples_leaf=.3)
+        self.classifier = RFC(n_estimators=10, min_samples_leaf=.3)
 
     def train(self, X, y):
         self.classifier.fit(X, y)

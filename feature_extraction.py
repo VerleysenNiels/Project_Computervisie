@@ -30,7 +30,7 @@ class FeatureExtraction(object):
         colors = self.extract_colors(image)
         logging.debug('colors.shape = %s', colors.shape)
         logging.debug('features.shape = %s', features.shape)
-        features = np.append(features, colors, axis=0)
+        features = np.append(features, colors, axis=0).flatten()
         logging.info('features.shape = %s', features.shape)
         return features
 

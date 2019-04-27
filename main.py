@@ -19,7 +19,7 @@ class PaintingClassifier(object):
         parser = argparse.ArgumentParser(
             description="Locate a painting in the MSK")
         parser.add_argument(
-            "command", choices=["build", "train", "eval"], help="Subcommand to run"
+            "command", choices=["build", "train", "infer"], help="Subcommand to run"
         )
 
         args = parser.parse_args(sys.argv[1:2])
@@ -61,11 +61,7 @@ class PaintingClassifier(object):
             io_utils.imwrite(out_path, img)
 
     def train(self):
-        parser = argparse.ArgumentParser(description="")
-        args = parser.parse_args(sys.argv[2:])
-
-    def eval(self):
-        """ Evaluate classifier built from db folder.
+        """ Train classifier built from db folder.
             Example command:
 
         """
@@ -101,6 +97,32 @@ class PaintingClassifier(object):
         logging.info('Evaluate classifier on training data...')
         accuracy = classifier.eval(X, y)
         logging.info('Accuracy: %f', accuracy)
+
+    def infer(self):
+        parser = argparse.ArgumentParser(description="")
+        parser.add_argument(
+            "file", help="Video file to infer the hall ID from.", type=argparse.FileType('r'))
+        parser.add_argument("-v", "--verbose", dest="verbose_count",
+                            action="count", default=0,
+                            help="increases log verbosity for each occurence.")
+        args = parser.parse_args(sys.argv[2:])
+        self._build_logger(args.verbose_count)
+        logging.warning('Press Q to quit')
+        for frame in io_utils.read_video(args.file.name, interval=5):
+            frame = cv2.resize(
+                frame, (0, 0),
+                fx=720 / frame.shape[0],
+                fy=720 / frame.shape[0],
+                interpolation=cv2.INTER_NEAREST)
+
+            frame_equalized = feature_detection.equalize_histogram(frame)
+            points = feature_detection.detect_perspective(frame_equalized)
+            if len(points) > 0:
+                pts = points.reshape((-1, 1, 2))
+                frame = cv2.polylines(frame, [pts], True, (255, 0, 0), 2)
+            cv2.imshow(args.file.name + ' (press Q to quit)', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
     def _build_logger(self, level):
         logging.basicConfig(

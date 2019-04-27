@@ -76,8 +76,8 @@ def bounding_rect(lines, corners, theta_threshold=.1):
     """
 
     if len(lines) < 4:
-        logging.error(
-            'Perspective transform: Not enough lines found: {}.'.format(len(lines)))
+        logging.warning(
+            'Perspective transform: Not enough lines found (%d).', len(lines))
         return []
 
     straight = np.pi / 2
@@ -110,7 +110,7 @@ def bounding_rect(lines, corners, theta_threshold=.1):
     perpendicular[best].sort(key=lambda x: x[1], reverse=True)
 
     if len(parallel[best]) < 1 or len(perpendicular[best]) < 2:
-        logging.error(
+        logging.warning(
             'Perspective transform: not enough parallel/perpendicular lines found.')
         return []
 

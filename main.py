@@ -10,7 +10,7 @@ import feature_detection
 import perspective
 import logging
 
-level = logging.INFO
+level = logging.DEBUG
 
 
 class PaintingClassifier(object):

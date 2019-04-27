@@ -8,7 +8,7 @@ import argparse
 import sys
 import feature_detection
 from feature_extraction import FeatureExtraction
-from classifiers import RandomForestClassifier
+from classifiers import RandomForestClassifier, NeuralNetClassifier
 import perspective
 import logging
 
@@ -92,7 +92,8 @@ class PaintingClassifier(object):
         logging.info('Train classifier on %d samples...', X.shape[0])
         logging.debug('X.shape = %s', X.shape)
         logging.debug('y.shape = %s', y.shape)
-        classifier = RandomForestClassifier()
+        #classifier = RandomForestClassifier()
+        classifier = NeuralNetClassifier()
         classifier.train(X, y)
         logging.info('Evaluate classifier on training data...')
         accuracy = classifier.eval(X, y)

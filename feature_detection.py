@@ -106,3 +106,7 @@ def equalize_histogram(img):
     img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
     # Convert back to BGR
     return cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+
+def dilate(img):
+    img2 = cv2.dilate(img, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)))
+    return img2

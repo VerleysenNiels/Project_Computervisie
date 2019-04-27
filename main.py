@@ -7,6 +7,7 @@ import viz_utils
 import argparse
 import sys
 import feature_detection
+import feature_extraction
 import perspective
 import logging
 
@@ -45,12 +46,16 @@ class PaintingClassifier(object):
 
         for path, img in io_utils.imread_folder(args.directory):
             img = feature_detection.equalize_histogram(img)
-
+            img = feature_detection.dilate(img)
             points = feature_detection.detect_perspective(img)
             img = perspective.perspective_transform(img, points)
 
             if logging.root.level == logging.DEBUG:
                 viz_utils.imshow(img, resize=True)
+
+            # TEST FEATURE EXTRACTION
+            colors = feature_extraction.extract_colors(img, 50)
+            print(colors)
 
             # Write to DB folder
             label = os.path.basename(os.path.dirname(path))

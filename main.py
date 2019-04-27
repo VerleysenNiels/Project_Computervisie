@@ -105,7 +105,7 @@ class PaintingClassifier(object):
 
     def _build_logger(self, level):
         logging.basicConfig(
-            format="[%(levelname)s] %(asctime)s - %(message)s", level=max(3 - level, 0) * 10
+            format="[%(levelname)s]\t%(asctime)s - %(message)s", level=max(3 - level, 0) * 10
         )
 
 

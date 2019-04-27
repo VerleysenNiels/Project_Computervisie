@@ -31,7 +31,7 @@ class FeatureExtraction(object):
         logging.debug('colors.shape = %s', colors.shape)
         logging.debug('features.shape = %s', features.shape)
         features = np.append(features, colors, axis=0).flatten()
-        logging.info('features.shape = %s', features.shape)
+        logging.debug('features.shape = %s', features.shape)
         return features
 
     def create_dog(self, dim, angle=0):

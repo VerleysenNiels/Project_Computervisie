@@ -11,15 +11,10 @@ import feature_extraction
 import perspective
 import logging
 
-level = logging.DEBUG
-
 
 class PaintingClassifier(object):
     def __init__(self):
         self.check_versions()
-        logging.basicConfig(
-            format="[%(levelname)s] %(asctime)s - %(message)s", level=level
-        )
         parser = argparse.ArgumentParser(
             description="Locate a painting in the MSK")
         parser.add_argument(
@@ -42,7 +37,11 @@ class PaintingClassifier(object):
             description="Build painting database from raw images directory"
         )
         parser.add_argument("directory")
+        parser.add_argument("-v", "--verbose", dest="verbose_count",
+                            action="count", default=0,
+                            help="increases log verbosity for each occurence.")
         args = parser.parse_args(sys.argv[2:])
+        self._build_logger(args.verbose_count)
 
         for path, img in io_utils.imread_folder(args.directory):
             img = feature_detection.equalize_histogram(img)
@@ -53,15 +52,12 @@ class PaintingClassifier(object):
             if logging.root.level == logging.DEBUG:
                 viz_utils.imshow(img, resize=True)
 
-            # TEST FEATURE EXTRACTION
-            colors = feature_extraction.extract_colors(img, 50)
-            print(colors)
-
             # Write to DB folder
             label = os.path.basename(os.path.dirname(path))
             out_path = os.path.join(
                 'db', label.lower(), os.path.basename(path))
             logging.info('Writing to ' + out_path)
+            logging.debug('Yolo')
             io_utils.imwrite(out_path, img)
 
     def train(self):
@@ -71,6 +67,11 @@ class PaintingClassifier(object):
     def eval(self):
         parser = argparse.ArgumentParser(description="")
         args = parser.parse_args(sys.argv[2:])
+
+    def _build_logger(self, level):
+        logging.basicConfig(
+            format="[%(levelname)s] %(asctime)s - %(message)s", level=max(3 - level, 0) * 10
+        )
 
 
 if __name__ == "__main__":

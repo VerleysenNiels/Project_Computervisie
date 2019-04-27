@@ -7,7 +7,8 @@ import viz_utils
 import argparse
 import sys
 import feature_detection
-import feature_extraction
+from feature_extraction import FeatureExtraction
+from classifiers import RandomForestClassifier
 import perspective
 import logging
 
@@ -57,7 +58,6 @@ class PaintingClassifier(object):
             out_path = os.path.join(
                 'db', label.lower(), os.path.basename(path))
             logging.info('Writing to ' + out_path)
-            logging.debug('Yolo')
             io_utils.imwrite(out_path, img)
 
     def train(self):
@@ -65,8 +65,42 @@ class PaintingClassifier(object):
         args = parser.parse_args(sys.argv[2:])
 
     def eval(self):
+        """ Evaluate classifier built from db folder.
+            Example command:
+
+        """
         parser = argparse.ArgumentParser(description="")
+        parser.add_argument("-v", "--verbose", dest="verbose_count",
+                            action="count", default=0,
+                            help="increases log verbosity for each occurence.")
         args = parser.parse_args(sys.argv[2:])
+        self._build_logger(args.verbose_count)
+
+        logging.info('Build features from ./db')
+        feature_extraction = FeatureExtraction()
+        X, y = [], []
+        for path, img in io_utils.imread_folder('./db', resize=False):
+            if img.shape != (512, 512, 3):
+                logging.error(
+                    'Skipping %s because of incorrect shape %s', path, img.shape)
+                continue
+            label = os.path.basename(os.path.dirname(path))
+            y.append(label)
+
+            features = feature_extraction.extract_features(img)
+            X.append(features)
+
+        X = np.array(X)
+        y = np.array(y)
+
+        logging.info('Train classifier on %d samples...', X.shape[0])
+        logging.debug('X.shape = %s', X.shape)
+        logging.debug('y.shape = %s', y.shape)
+        classifier = RandomForestClassifier()
+        classifier.train(X, y)
+        logging.info('Evaluate classifier on training data...')
+        accuracy = classifier.eval(X, y)
+        logging.info('Accuracy: %f', accuracy)
 
     def _build_logger(self, level):
         logging.basicConfig(

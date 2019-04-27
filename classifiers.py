@@ -1,19 +1,20 @@
 import cv2
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier as RFC
+import logging
 
 
 class RandomForestClassifier(object):
 
     def __init__(self):
-        self.classifier = RandomForestClassifier(
+        self.classifier = RFC(
             n_estimators=10, min_samples_leaf=.3)
 
-    def train(X, y):
+    def train(self, X, y):
         self.classifier.fit(X, y)
 
-    def eval(X, y):
-        pass
+    def eval(self, X, y):
+        return self.classifier.score(X, y)
 
-    def infer(X):
-        pass
+    def infer(self, X):
+        return self.classifier.predict(X)

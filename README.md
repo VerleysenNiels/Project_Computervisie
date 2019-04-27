@@ -8,10 +8,13 @@ pip install -r requirements.txt
 
 ## Usage
 
-To build the database of images, run
-
 ```
-python main.py build [IMAGE_FOLDER]
+python main.py COMMAND [ARGS]
+
+Commands:
+
+build [DIRECTORY]  Build database from folder (recursively)
+eval               Evaluate classifier on database
 
 Options:
 

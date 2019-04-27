@@ -1,6 +1,8 @@
 import cv2
 import os
 import logging
+import numpy as np
+import viz_utils
 
 
 def imread(path, resize=True, bw=False):
@@ -38,3 +40,15 @@ def imwrite(path, image):
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
     cv2.imwrite(path, image)
+
+
+def read_video(path, interval=15):
+    video = cv2.VideoCapture(path)
+    id = 0
+    while(video.isOpened()):
+        ret, frame = video.read()
+        if(id % interval == 0):
+            yield frame
+        id += 1
+
+    video.release()

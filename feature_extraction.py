@@ -3,6 +3,7 @@ import numpy as np
 import logging
 import viz_utils
 import io_utils
+from skimage import feature
 
 
 class FeatureExtraction(object):
@@ -102,6 +103,11 @@ class FeatureExtraction(object):
             score += m.distance
         #low score indicates good match
         return score
+
+    def texture_detection(self, img):
+        grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        lbp = feature.local_binary_pattern(grayscale, 32, 4).astype('uint8')
+        return lbp
 
 
 if __name__ == "__main__":

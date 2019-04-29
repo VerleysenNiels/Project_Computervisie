@@ -104,10 +104,16 @@ class FeatureExtraction(object):
         #low score indicates good match
         return score
 
-    def texture_detection(self, img):
+    def texture_extraction(self, img):
         grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         lbp = feature.local_binary_pattern(grayscale, 32, 4).astype('uint8')
         return lbp
+
+    def gabor_filtering(self, img):
+        g_kernel = cv2.getGaborKernel((21,21), 8.0, 0, 10.0, 0.5, 0, ktype=cv2.CV_32F)
+        grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        filtered_img = cv2.filter2D(grayscale, cv2.CV_8UC3, g_kernel)
+        return filtered_img, g_kernel
 
 
 if __name__ == "__main__":

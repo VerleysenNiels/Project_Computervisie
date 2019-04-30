@@ -47,7 +47,7 @@ class PaintingClassifier(object):
         for path, img in io_utils.imread_folder(args.directory):
             img = feature_detection.equalize_histogram(img)
             img = feature_detection.dilate(img)
-            points = feature_detection.detect_perspective(img)
+            points, img = feature_detection.detect_perspective(img)
             img = perspective.perspective_transform(img, points)
 
             if logging.root.level == logging.DEBUG:
@@ -109,18 +109,15 @@ class PaintingClassifier(object):
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
         logging.warning('Press Q to quit')
-        for frame in io_utils.read_video(args.file.name, interval=5):
+        for frame in io_utils.read_video(args.file.name, interval=1):
             frame = cv2.resize(
                 frame, (0, 0),
                 fx=720 / frame.shape[0],
                 fy=720 / frame.shape[0],
-                interpolation=cv2.INTER_NEAREST)
+                interpolation=cv2.INTER_AREA)
 
-            frame_equalized = feature_detection.equalize_histogram(frame)
-            points = feature_detection.detect_perspective(frame_equalized)
-            if len(points) > 0:
-                pts = points.reshape((-1, 1, 2))
-                frame = cv2.polylines(frame, [pts], True, (255, 0, 0), 2)
+            points, frame = feature_detection.detect_perspective(
+                frame, remove_hblur=True, minLineLength=70, maxLineGap=5)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

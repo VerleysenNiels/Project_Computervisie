@@ -8,12 +8,19 @@ from itertools import combinations
 import logging
 
 
-def detect_lines(img, threshold=128, canny_treshold=150):
+def detect_lines(img, threshold=128, canny_treshold=150, remove_hblur=False, minLineLength=50, maxLineGap=150):
     """ Detect lines using HoughLinesP
     """
+    if remove_hblur:
+        img = cv2.erode(img, cv2.getStructuringElement(
+            cv2.MORPH_RECT, (1, 5)), iterations=2)
     canny = cv2.Canny(img, 2 * canny_treshold // 3, canny_treshold)
+    if remove_hblur:
+        canny = cv2.dilate(
+            canny, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 1)))
+
     lines = cv2.HoughLinesP(
-        canny, 1, (np.pi / 180), threshold, minLineLength=50, maxLineGap=150
+        canny, 1, (np.pi / 180), threshold, minLineLength=minLineLength, maxLineGap=maxLineGap
     )
     try:
         return np.reshape(lines, (-1, 4))
@@ -59,7 +66,7 @@ def detect_corners(img):
     return corners
 
 
-def detect_perspective(img):
+def detect_perspective(img, remove_hblur=False, minLineLength=50, maxLineGap=150):
     """Automatically detect perspective points, used in perspective
     transformation.
 
@@ -67,14 +74,22 @@ def detect_perspective(img):
         An array of 4 points. If the perspective cannot be detected, the array
         is empty
     """
+    img = cv2.medianBlur(img, 5)
+    all_lines = detect_lines(
+        img,
+        remove_hblur=remove_hblur,
+        minLineLength=minLineLength,
+        maxLineGap=maxLineGap)  # Detect all lines
 
-    all_lines = detect_lines(cv2.medianBlur(img, 15))  # Detect all lines
+    if logging.root.level == logging.DEBUG:
+        img = viz_utils.overlay_lines_cartesian(img, all_lines)
+
     # all_corners = detect_corners(img)
     lines = math_utils.bounding_rect(
         all_lines, None)  # Pick best 4 lines
 
     if len(lines) < 4:
-        return []
+        return [], img
 
     points = np.int32(
         [
@@ -86,13 +101,11 @@ def detect_perspective(img):
     )  # Calculate intersection points
 
     if logging.root.level == logging.DEBUG:
-        img_lines = viz_utils.overlay_lines_cartesian(img, all_lines)
         pts = points.reshape((-1, 1, 2))
-        img_lines = cv2.polylines(img_lines, [pts], True, (255, 0, 0), 2)
-        img_lines = viz_utils.overlay_points(img_lines, points)
-        viz_utils.imshow(img_lines, resize=True)
+        img_lines = cv2.polylines(img, [pts], True, (255, 0, 0), 2)
+        img = viz_utils.overlay_points(img_lines, points)
 
-    return points
+    return points, img
 
 
 def equalize_histogram(img):
@@ -106,6 +119,7 @@ def equalize_histogram(img):
     img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
     # Convert back to BGR
     return cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+
 
 def dilate(img):
     img2 = cv2.dilate(img, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)))

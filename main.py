@@ -8,7 +8,7 @@ import argparse
 import sys
 import feature_detection
 from feature_extraction import FeatureExtraction
-from classifiers import RandomForestClassifier, NeuralNetClassifier
+from classifiers import RandomForestClassifier
 import perspective
 import logging
 

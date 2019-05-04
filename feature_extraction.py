@@ -4,6 +4,7 @@ import logging
 import viz_utils
 import io_utils
 from skimage import feature
+import math
 
 
 class FeatureExtraction(object):
@@ -88,21 +89,20 @@ class FeatureExtraction(object):
         return np.array([red, green, blue])
 
     def extract_keypoints(self, img_gray):
-        #doesn't work as well if nfeatures < 300
         orb = cv2.ORB_create(nfeatures=300)
         keypoints, descriptors = orb.detectAndCompute(img_gray, None)
-        #each descriptor is 32 numbers, so that's 300*32 = 9600 more features
-        return descriptors.flatten()
+        return descriptors
 
     def match_keypoints(self, descriptors_im, descriptors_db):
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         matches = bf.match(descriptors_im, descriptors_db)
         matches = sorted(matches, key=lambda x: x.distance)
-        score = 0
-        for m in matches[:20]:
-            score += m.distance
-        #low score indicates good match
-        return score
+        if len(matches) == 0:
+            return math.inf
+
+        # low score indicates good match
+        score = reduce(lambda x1, x2: return x1+x2, matches[:20])
+        return score / min(len(matches), 20)
 
     def texture_extraction(self, img):
         grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -110,7 +110,8 @@ class FeatureExtraction(object):
         return lbp
 
     def gabor_filtering(self, img):
-        g_kernel = cv2.getGaborKernel((21,21), 8.0, 0, 10.0, 0.5, 0, ktype=cv2.CV_32F)
+        g_kernel = cv2.getGaborKernel(
+            (21, 21), 8.0, 0, 10.0, 0.5, 0, ktype=cv2.CV_32F)
         grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         filtered_img = cv2.filter2D(grayscale, cv2.CV_8UC3, g_kernel)
         return filtered_img, g_kernel
@@ -121,5 +122,23 @@ if __name__ == "__main__":
         format="[%(levelname)s] %(asctime)s - %(message)s", level=logging.DEBUG
     )
     extr = FeatureExtraction()
-    for path, img in io_utils.imread_folder('./db'):
-        extr.extract_features(img)
+    descriptors = list()
+    for path, img in io_utils.imread_folder('./db', resize=False):
+        if img.shape == (512, 512, 3):
+            descriptors.append((extr.extract_keypoints(
+                cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)), path))
+
+    best_score = 10000
+    best = ''
+    img = io_utils.imread(
+        'images/pictures_msk_smak_galaxy_A5/query_paintings_20/20190203_110120.jpg')
+    des = extr.extract_keypoints(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+    for d in descriptors:
+        if d[0] is not None:
+            score = extr.match_keypoints(des, d[0])
+            logging.debug('%s: %f', d[1], score)
+            if score < best_score:
+                best = d[1]
+                best_score = score
+
+    logging.info(best)

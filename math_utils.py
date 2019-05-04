@@ -123,13 +123,17 @@ def bounding_rect(lines, corners, theta_threshold=.1):
 
     # TODO: integrate `corners` in voting system somehow -> combine corners with aspect ratio
 
+    # Initialize indices of the bounding rectangle
     par = 0
     perp1 = 0
     perp2 = -1
 
+    # While the ratio of the bounding rectangle is not realistic for a painting, try to decrease te size and get a better ratio
     good_ratio = False
-    while not good_ratio: # and len(perpendicular[best]) > 2 and len(parallel[best]) > 2 and par < len(parallel[best]) and perp1 < len(perpendicular[best]) and perp1 + 1 < len(perpendicular[best]) + perp2:
+    while not good_ratio:
         good_ratio = True
+
+        # Get 3 corners of the rectangle
         x1, y1 = intersections_polar(lines[best], lines[perpendicular[best][perp1][0]])
         x2, y2 = intersections_polar(lines[best], lines[perpendicular[best][perp2][0]])
         x3, y3 = intersections_polar(lines[parallel[best][par][0]], lines[perpendicular[best][perp1][0]])
@@ -138,35 +142,35 @@ def bounding_rect(lines, corners, theta_threshold=.1):
         width = max(abs(x1 - x2), abs(y1-y2))
         height = max(abs(x1 - x3), abs(y1-y3))
 
-        #print("width: " + str(width))
-        #print("height: " + str(height))
-
-        if width/height < 0.55 or height/width < 0.55:
+        if width > 0 and height > 0 and (width/height < 0.55 or height/width < 0.55):
             #Bad ratio
             good_ratio = False
             if width > height:
-                # look for max dist to remove (perp1 or perp2)
-                # calc intersections of best with perp1 + 1 and with perp2 -1
+                # Look for maximum distance to remove (perp1 or perp2)
+                # Calculate new intersections of best with perp1 + 1 and with perp2 -1 and the corresponding distances
+
                 x, y = intersections_polar(lines[best], lines[perpendicular[best][perp1+1][0]])
                 dist_perp1 = max(abs(x2 - x), abs(y2-y))
+
                 x, y = intersections_polar(lines[best], lines[perpendicular[best][perp2-1][0]])
                 dist_perp2 = max(abs(x1 - x), abs(y1 - y))
+
                 # change index with biggest distance from previous line
                 if dist_perp1 > dist_perp2 and perp1 + 1 < len(perpendicular[best]) + perp2:
                     perp1 += 1
                 elif len(perpendicular[best])-1 + perp2 - 1 > perp1:
                     perp2 -= 1
                 else:
-                    good_ratio = True # Can't go smaller
-                    print("can't go smaller")
-                    #return []
+                    # It is not possible to make the bounding rectangle smaller
+                    good_ratio = True
+
             elif par + 1 < len(parallel[best])-1:
                 par += 1
             else:
-                good_ratio = True # Can't go smaller
-                print("can't go smaller")
-                #return []
+                # It is impossible to make the bounding rectangle smaller
+                good_ratio = True
 
+    # Calculate final intersections
     x1, y1 = intersections_polar(lines[best], lines[perpendicular[best][perp1][0]])
     x2, y2 = intersections_polar(lines[best], lines[perpendicular[best][perp2][0]])
     x3, y3 = intersections_polar(lines[parallel[best][par][0]], lines[perpendicular[best][perp1][0]])
@@ -175,13 +179,13 @@ def bounding_rect(lines, corners, theta_threshold=.1):
     width = max(abs(x1 - x2), abs(y1 - y2))
     height = max(abs(x1 - x3), abs(y1 - y3))
 
-    #print("width: " + str(width))
-    #print("height: " + str(height))
-
-    if width / height < 0.55 or height / width < 0.55: # Still bad ratio
+    # Check if the ratio is now good
+    if width > 0 and height > 0 and (width/height < 0.55 or height/width < 0.55):
+        # Ratio is still bad, so there is no good bounding rectangle
         print("BAD RATIO: " + min(str(width /height), str(height/width)))
         return []
-    else: # Good ratio
+    else:
+        # The ratio is good, return the bounding rectangle
         l1 = lines[best]
         l2 = lines[parallel[best][par][0]]
         l3 = lines[perpendicular[best][perp1][0]]

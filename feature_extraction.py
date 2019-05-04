@@ -99,9 +99,11 @@ class FeatureExtraction(object):
         matches = sorted(matches, key=lambda x: x.distance)
         if len(matches) == 0:
             return math.inf
-
+            
+        score = 0
+        for m in matches[:20]:
+            score += m.distance
         # low score indicates good match
-        score = reduce(lambda x1, x2: return x1+x2, matches[:20])
         return score / min(len(matches), 20)
 
     def texture_extraction(self, img):

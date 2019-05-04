@@ -144,7 +144,7 @@ class PaintingClassifier(object):
             if len(points) == 4:
 
                 best_score = math.inf
-                best = 'Not enough reference points'
+                best = '?'
 
                 points = perspective.order_points(points)
                 img = perspective.perspective_transform(frame, points)

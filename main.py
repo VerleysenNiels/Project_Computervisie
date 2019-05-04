@@ -11,7 +11,8 @@ from feature_extraction import FeatureExtraction
 from classifiers import RandomForestClassifier
 import perspective
 import logging
-
+import pickle
+import math
 
 class PaintingClassifier(object):
     def __init__(self):
@@ -99,6 +100,10 @@ class PaintingClassifier(object):
         logging.info('Accuracy: %f', accuracy)
 
     def infer(self):
+        '''
+        Example:
+            python main.py infer .\videos\MSK_01.mp4 -v -v
+        '''
         parser = argparse.ArgumentParser(description="")
         parser.add_argument(
             "file", help="Video file to infer the hall ID from.", type=argparse.FileType('r'))
@@ -107,8 +112,26 @@ class PaintingClassifier(object):
                             help="increases log verbosity for each occurence.")
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
+
+        extr = FeatureExtraction()
+        if os.path.isfile('descriptors.pickle'):
+            logging.info('Reading descriptors from descriptors.pickle...')
+            with open('descriptors.pickle', 'rb') as file:
+                descriptors = pickle.load(file)
+        else:
+            logging.info('Computing descriptors from db...')
+            descriptors = dict()
+            for path, img in io_utils.imread_folder('./db', resize=False):
+                if img.shape == (512, 512, 3):
+                    descriptors[path] = extr.extract_keypoints(img)
+
+            logging.info('Writing descriptors to descriptors.pickle...')
+            with open('descriptors.pickle', 'wb+') as file:
+                # protocol 0 is printable ASCII
+                pickle.dump(descriptors, file,  protocol=-1)
+
         logging.warning('Press Q to quit')
-        for frame in io_utils.read_video(args.file.name, interval=1):
+        for frame in io_utils.read_video(args.file.name, interval=5):
             frame = cv2.resize(
                 frame, (0, 0),
                 fx=720 / frame.shape[0],
@@ -117,6 +140,26 @@ class PaintingClassifier(object):
 
             points, frame = feature_detection.detect_perspective(
                 frame, remove_hblur=True, minLineLength=70, maxLineGap=5)
+
+            if len(points) == 4:
+
+                best_score = math.inf
+                best = 'Not enough reference points'
+
+                points = perspective.order_points(points)
+                img = perspective.perspective_transform(frame, points)
+
+                descriptor = extr.extract_keypoints(img)
+                for path in descriptors:
+                    if descriptors[path] is not None:
+                        score = extr.match_keypoints(
+                            descriptor, descriptors[path])
+                        if score < best_score:
+                            best = path
+                            best_score = score
+                logging.info(best)
+                frame = cv2.putText(frame, best, (int(points[0][0]), int(points[0][1])), cv2.FONT_HERSHEY_PLAIN,
+                                    1.0, (255, 0, 0), lineType=cv2.LINE_AA)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

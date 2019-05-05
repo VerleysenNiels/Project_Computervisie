@@ -1,9 +1,15 @@
-import cv2
-
-import numpy as np
-from itertools import combinations
-import random
 import logging
+import os
+import random
+from itertools import combinations
+
+import cv2
+import numpy as np
+
+
+def rolling_avg(paths):
+    samples = list(map(lambda x: os.path.basename(os.path.dirname(x)), paths))
+    return max(set(samples), key=samples.count)
 
 
 def to_polar(line):
@@ -36,6 +42,18 @@ def to_cartesian(line):
     return x1, y1, x2, y2
 
 
+def euclid_dist(p1, p2):
+    x1 = p1[0]
+    y1 = p1[1]
+    x2 = p2[0]
+    y2 = p2[1]
+    return (x1 - x2) ** 2 + (y1 - y2) ** 2
+
+
+def approx_dist(p1, p2):
+    return max(abs(p1[0] - p2[0]), abs(p1[1] - p2[1]))
+
+
 def eliminate_duplicates(lines, rho_threshold=10, theta_threshold=.1):
     """Remove similar lines, based on a threshold
     """
@@ -59,6 +77,7 @@ def intersections_polar(a, b):
     """
     return intersections(to_cartesian(a), to_cartesian(b))
 
+
 def intersections(a, b):
     """Calculate intersection between two lines in cartesian form
     """
@@ -77,7 +96,13 @@ def intersections(a, b):
         return -1, -1
 
 
-def bounding_rect(lines, corners, theta_threshold=.1):
+def out_of_ratio(width, height, ratio):
+    return width > 0 \
+        and height > 0  \
+        and (width/height < ratio or height/width < ratio)
+
+
+def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.55):
     """Pick 4 lines which are most likely to be the edges of the painting,
     used for perspective correction
     """
@@ -113,76 +138,82 @@ def bounding_rect(lines, corners, theta_threshold=.1):
                 and len(parallel[i]) >= 1:
             best = i
 
+    # Sort the lines by rho-difference
     parallel[best].sort(key=lambda x: x[1], reverse=True)
     perpendicular[best].sort(key=lambda x: x[1], reverse=True)
 
     if len(parallel[best]) < 1 or len(perpendicular[best]) < 2:
         logging.warning(
-            'Perspective transform: not enough parallel/perpendicular lines found.')
+            'Perspective transform: Not enough parallel/perpendicular lines found.')
         return []
 
-    # TODO: integrate `corners` in voting system somehow -> combine corners with aspect ratio
-
     # Initialize indices of the bounding rectangle
-    par = 0
-    perp1 = 0
-    perp2 = -1
+    par = 0     # highest Δrho
+    perp1 = 0   # highest Δrho
+    perp2 = -1  # lowest Δrho
 
-    # While the ratio of the bounding rectangle is not realistic for a painting, try to decrease te size and get a better ratio
+    # While the ratio of the bounding rectangle is not realistic for a
+    # painting, try to decrease te size and get a better ratio
     good_ratio = False
     while not good_ratio:
-        good_ratio = True
-
         # Get 3 corners of the rectangle
-        x1, y1 = intersections_polar(lines[best], lines[perpendicular[best][perp1][0]])
-        x2, y2 = intersections_polar(lines[best], lines[perpendicular[best][perp2][0]])
-        x3, y3 = intersections_polar(lines[parallel[best][par][0]], lines[perpendicular[best][perp1][0]])
+        p1 = intersections_polar(
+            lines[best], lines[perpendicular[best][perp1][0]])
+        p2 = intersections_polar(
+            lines[best], lines[perpendicular[best][perp2][0]])
+        p3 = intersections_polar(
+            lines[parallel[best][par][0]], lines[perpendicular[best][perp1][0]])
 
         # Not really width and height, it can be the other way around as well
-        width = max(abs(x1 - x2), abs(y1-y2))
-        height = max(abs(x1 - x3), abs(y1-y3))
+        width = euclid_dist(p1, p2)
+        height = euclid_dist(p1, p3)
 
-        if width > 0 and height > 0 and (width/height < 0.55 or height/width < 0.55):
-            #Bad ratio
-            good_ratio = False
+        if out_of_ratio(width, height, ratio):
+            # Bad ratio
             if width > height:
                 # Look for maximum distance to remove (perp1 or perp2)
                 # Calculate new intersections of best with perp1 + 1 and with perp2 -1 and the corresponding distances
 
-                x, y = intersections_polar(lines[best], lines[perpendicular[best][perp1+1][0]])
-                dist_perp1 = max(abs(x2 - x), abs(y2-y))
+                p = intersections_polar(
+                    lines[best], lines[perpendicular[best][perp1+1][0]])
+                dist_perp1 = euclid_dist(p2, p)
 
-                x, y = intersections_polar(lines[best], lines[perpendicular[best][perp2-1][0]])
-                dist_perp2 = max(abs(x1 - x), abs(y1 - y))
+                p = intersections_polar(
+                    lines[best], lines[perpendicular[best][perp2-1][0]])
+                dist_perp2 = euclid_dist(p1, p)
 
                 # change index with biggest distance from previous line
                 if dist_perp1 > dist_perp2 and perp1 + 1 < len(perpendicular[best]) + perp2:
                     perp1 += 1
-                elif len(perpendicular[best])-1 + perp2 - 1 > perp1:
+                elif len(perpendicular[best]) - 1 + perp2 > perp1 + 1:
                     perp2 -= 1
                 else:
                     # It is not possible to make the bounding rectangle smaller
                     good_ratio = True
-
-            elif par + 1 < len(parallel[best])-1:
+            elif par + 1 < len(parallel[best]) - 1:
                 par += 1
             else:
                 # It is impossible to make the bounding rectangle smaller
                 good_ratio = True
+        else:
+            good_ratio = True
 
     # Calculate final intersections
-    x1, y1 = intersections_polar(lines[best], lines[perpendicular[best][perp1][0]])
-    x2, y2 = intersections_polar(lines[best], lines[perpendicular[best][perp2][0]])
-    x3, y3 = intersections_polar(lines[parallel[best][par][0]], lines[perpendicular[best][perp1][0]])
+    p1 = intersections_polar(
+        lines[best], lines[perpendicular[best][perp1][0]])
+    p2 = intersections_polar(
+        lines[best], lines[perpendicular[best][perp2][0]])
+    p3 = intersections_polar(
+        lines[parallel[best][par][0]], lines[perpendicular[best][perp1][0]])
 
-    # Not really width and height, it can be the other way around as well
-    width = max(abs(x1 - x2), abs(y1 - y2))
-    height = max(abs(x1 - x3), abs(y1 - y3))
+    width = euclid_dist(p1, p2)
+    height = euclid_dist(p1, p3)
 
     # Check if the ratio is now good
-    if width > 0 and height > 0 and (width/height < 0.55 or height/width < 0.55):
+    if out_of_ratio(width, height, ratio):
         # Ratio is still bad, so there is no good bounding rectangle
-        print("BAD RATIO: " + min(str(width /height), str(height/width)))
+        logging.warning("Perspective transform: Bad aspect ratio (%f) ",
+                        min(width / height, height/width))
         return []
     else:
         # The ratio is good, return the bounding rectangle

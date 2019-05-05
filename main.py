@@ -1,18 +1,22 @@
-import cv2
-import platform
-import numpy as np
-import os
-import io_utils
-import viz_utils
 import argparse
-import sys
-import feature_detection
-from feature_extraction import FeatureExtraction
-from classifiers import RandomForestClassifier
-import perspective
 import logging
-import pickle
 import math
+import os
+import pickle
+import platform
+import sys
+
+import cv2
+import numpy as np
+
+import feature_detection
+import io_utils
+import math_utils
+import perspective
+import viz_utils
+from classifiers import RandomForestClassifier
+from feature_extraction import FeatureExtraction
+
 
 class PaintingClassifier(object):
     def __init__(self):
@@ -46,13 +50,12 @@ class PaintingClassifier(object):
         self._build_logger(args.verbose_count)
 
         for path, img in io_utils.imread_folder(args.directory):
-            img = feature_detection.equalize_histogram(img)
-            img = feature_detection.dilate(img)
+            # img = feature_detection.equalize_histogram(img)
+            # img = feature_detection.dilate(img)
             points, img = feature_detection.detect_perspective(img)
-            img = perspective.perspective_transform(img, points)
-
             if logging.root.level == logging.DEBUG:
                 viz_utils.imshow(img, resize=True)
+            img = perspective.perspective_transform(img, points)
 
             # Write to DB folder
             label = os.path.basename(os.path.dirname(path))
@@ -98,6 +101,8 @@ class PaintingClassifier(object):
         logging.info('Evaluate classifier on training data...')
         accuracy = classifier.eval(X, y)
         logging.info('Accuracy: %f', accuracy)
+        with open(classifier, 'wb+') as file:
+            pickle.dump(classifier, file)
 
     def infer(self):
         '''
@@ -131,6 +136,7 @@ class PaintingClassifier(object):
                 pickle.dump(descriptors, file,  protocol=-1)
 
         logging.warning('Press Q to quit')
+        labels = []
         for frame in io_utils.read_video(args.file.name, interval=5):
             frame = cv2.resize(
                 frame, (0, 0),
@@ -158,7 +164,11 @@ class PaintingClassifier(object):
                             best = path
                             best_score = score
                 logging.info(best)
-                frame = cv2.putText(frame, best, (int(points[0][0]), int(points[0][1])), cv2.FONT_HERSHEY_PLAIN,
+                if best != '?':
+                    labels.append(best)
+                    labels = labels[-10:]
+                hall = math_utils.rolling_avg(labels)
+                frame = cv2.putText(frame, hall, (int(points[0][0]), int(points[0][1])), cv2.FONT_HERSHEY_PLAIN,
                                     1.0, (255, 0, 0), lineType=cv2.LINE_AA)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):

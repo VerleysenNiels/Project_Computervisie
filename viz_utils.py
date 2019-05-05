@@ -15,8 +15,8 @@ def imshow(img, name='Image', norm=False, resize=False):
     if norm:
         img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
     cv2.imshow(name, img.astype('uint8'))
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    cv2.waitKey(500)
+    # cv2.destroyAllWindows()
 
 
 def overlay_lines(img, lines):

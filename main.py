@@ -14,6 +14,7 @@ import io_utils
 import math_utils
 import perspective
 import viz_utils
+import Room_graph
 from classifiers import RandomForestClassifier
 from feature_extraction import FeatureExtraction
 
@@ -108,6 +109,11 @@ class PaintingClassifier(object):
         '''
         Example:
             python main.py infer .\videos\MSK_01.mp4 -v -v
+
+        Possible parameters for finetuning:
+            border for too blurry images
+            amount of previous labels used to determine the average label
+            amount of transitions the algorithm wants to change room, but is not allowed (prevent being stuck in wrong room)
         '''
         parser = argparse.ArgumentParser(description="")
         parser.add_argument(
@@ -137,7 +143,9 @@ class PaintingClassifier(object):
 
         logging.warning('Press Q to quit')
         labels = []
-        hall = None
+        hall = None  # Keep track of current room
+        stuck = 0  # Counter to detect being stuck in a room (bug when using graph)
+
         for frame in io_utils.read_video(args.file.name, interval=5):
             frame = cv2.resize(
                 frame, (0, 0),
@@ -150,7 +158,7 @@ class PaintingClassifier(object):
             blurry = cv2.Laplacian(frame, cv2.CV_64F).var()
 
             # Change this border for blurry
-            if blurry > 60:
+            if blurry > 65:
                 points, frame = feature_detection.detect_perspective(
                     frame, remove_hblur=True, minLineLength=70, maxLineGap=5)
 
@@ -173,8 +181,20 @@ class PaintingClassifier(object):
                     logging.info(best)
                     if best != '?':
                         labels.append(best)
-                        labels = labels[-10:]
-                    hall = math_utils.rolling_avg(labels)
+                        labels = labels[-15:]
+                    next_hall = math_utils.rolling_avg(labels)
+                    if hall is None or hall == next_hall:
+                        hall = next_hall
+                    elif Room_graph.transition_possible(hall, next_hall):
+                            hall = next_hall
+                    else:
+                        stuck += 1
+
+                    # ToDo: Needs finetuning
+                    # Alllow transition if algorithm is stuck in a room
+                    if stuck > 17:
+                        hall = next_hall
+                        stuck = 0
 
             # Write amount of blurriness
                 frame = cv2.putText(frame, "Not blurry: " + str(round(blurry)), (20, 20), cv2.FONT_HERSHEY_PLAIN,

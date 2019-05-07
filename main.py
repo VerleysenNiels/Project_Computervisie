@@ -137,6 +137,7 @@ class PaintingClassifier(object):
 
         logging.warning('Press Q to quit')
         labels = []
+        modes = ["ERROR_MODE", "WARNING_MODE", "INFO_MODE", "DEBUG_MODE"]
         hall = None
         for frame in io_utils.read_video(args.file.name, interval=5):
             frame = cv2.resize(
@@ -148,6 +149,7 @@ class PaintingClassifier(object):
             # compute the Laplacian of the image and then return the focus
             # measure, which is simply the variance of the Laplacian
             blurry = cv2.Laplacian(frame, cv2.CV_64F).var()
+
 
             # Change this border for blurry
             if blurry > 60:
@@ -176,21 +178,24 @@ class PaintingClassifier(object):
                         labels = labels[-10:]
                     hall = math_utils.rolling_avg(labels)
 
+
             # Write amount of blurriness
-                frame = cv2.putText(frame, "Not blurry: " + str(round(blurry)), (20, 20), cv2.FONT_HERSHEY_PLAIN,
+                frame = cv2.putText(frame, "Not blurry: " + str(round(blurry)), (20, 40), cv2.FONT_HERSHEY_PLAIN,
                                     1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             else:
-                frame = cv2.putText(frame, "Too blurry: " + str(round(blurry)), (20, 20), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
+                frame = cv2.putText(frame, "Too blurry: " + str(round(blurry)), (20, 40), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
 
             # Write predicted room and display image
-            frame = cv2.putText(frame, hall, (20, 40), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 0, 0), lineType=cv2.LINE_AA)
+            frame = cv2.putText(frame, hall, (20, 60), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 0, 0), lineType=cv2.LINE_AA)
+            frame = cv2.putText(frame, modes[args.verbose_count], (20, 20), cv2.FONT_HERSHEY_PLAIN,
+                                1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
     def _build_logger(self, level):
         logging.basicConfig(
-            format="[%(levelname)s]\t%(asctime)s - %(message)s", level=max(3 - level, 0) * 10
+            format="[%(levelname)s]\t%(asctime)s - %(message)s", level=max(4 - level, 0) * 10
         )
 
 

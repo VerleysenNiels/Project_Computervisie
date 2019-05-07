@@ -5,6 +5,16 @@ import sys
 import io_utils
 import csv
 
+"""
+    Run this with the right settings for the folder to read and the csv to write
+    and it will show every image in turn. When it shows an image, click the four corners
+    (only the first four are recorded, so do it right) and then press any button to go
+    to the next image. Make sure you exit clean, or nothing will be saved in the csv.
+    Also, don't overwrite existing files.
+    
+    Corner coordinates are in the images scaled to 1080.
+"""
+
 scale = 1.0
 
 def draw_point (event, x, y, flags, corners):
@@ -15,10 +25,10 @@ def draw_point (event, x, y, flags, corners):
         cv2.imshow(imname, img_scaled)
 
 
-with open("corners_8.csv", mode = "w") as pandc:
+with open("corners_11.csv", mode = "w") as pandc:
     corner_writer = csv.writer(pandc, delimiter=";", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
 
-    for path, img in io_utils.imread_folder("images\zalen\zaal_8"):
+    for path, img in io_utils.imread_folder("images\zalen\zaal_11"):
         path2 = path.split("\\")
         imname = path2[len(path2) - 1]
         print(imname)

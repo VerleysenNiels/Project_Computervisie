@@ -137,6 +137,7 @@ class PaintingClassifier(object):
 
         logging.warning('Press Q to quit')
         labels = []
+        hall = None
         for frame in io_utils.read_video(args.file.name, interval=5):
             frame = cv2.resize(
                 frame, (0, 0),
@@ -144,32 +145,45 @@ class PaintingClassifier(object):
                 fy=720 / frame.shape[0],
                 interpolation=cv2.INTER_AREA)
 
-            points, frame = feature_detection.detect_perspective(
-                frame, remove_hblur=True, minLineLength=70, maxLineGap=5)
+            # compute the Laplacian of the image and then return the focus
+            # measure, which is simply the variance of the Laplacian
+            blurry = cv2.Laplacian(frame, cv2.CV_64F).var()
 
-            if len(points) == 4:
+            # Change this border for blurry
+            if blurry > 60:
+                points, frame = feature_detection.detect_perspective(
+                    frame, remove_hblur=True, minLineLength=70, maxLineGap=5)
 
-                best_score = math.inf
-                best = '?'
+                if len(points) == 4:
 
-                points = perspective.order_points(points)
-                img = perspective.perspective_transform(frame, points)
+                    best_score = math.inf
+                    best = '?'
 
-                descriptor = extr.extract_keypoints(img)
-                for path in descriptors:
-                    if descriptors[path] is not None:
-                        score = extr.match_keypoints(
-                            descriptor, descriptors[path])
-                        if score < best_score:
-                            best = path
-                            best_score = score
-                logging.info(best)
-                if best != '?':
-                    labels.append(best)
-                    labels = labels[-10:]
-                hall = math_utils.rolling_avg(labels)
-                frame = cv2.putText(frame, hall, (int(points[0][0]), int(points[0][1])), cv2.FONT_HERSHEY_PLAIN,
-                                    1.0, (255, 0, 0), lineType=cv2.LINE_AA)
+                    points = perspective.order_points(points)
+                    img = perspective.perspective_transform(frame, points)
+
+                    descriptor = extr.extract_keypoints(img)
+                    for path in descriptors:
+                        if descriptors[path] is not None:
+                            score = extr.match_keypoints(
+                                descriptor, descriptors[path])
+                            if score < best_score:
+                                best = path
+                                best_score = score
+                    logging.info(best)
+                    if best != '?':
+                        labels.append(best)
+                        labels = labels[-10:]
+                    hall = math_utils.rolling_avg(labels)
+
+            # Write amount of blurriness
+                frame = cv2.putText(frame, "Not blurry: " + str(round(blurry)), (20, 20), cv2.FONT_HERSHEY_PLAIN,
+                                    1.0, (0, 0, 255), lineType=cv2.LINE_AA)
+            else:
+                frame = cv2.putText(frame, "Too blurry: " + str(round(blurry)), (20, 20), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
+
+            # Write predicted room and display image
+            frame = cv2.putText(frame, hall, (20, 40), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 0, 0), lineType=cv2.LINE_AA)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

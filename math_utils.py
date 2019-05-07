@@ -1,7 +1,8 @@
 import logging
 import os
 import random
-from itertools import combinations
+import itertools
+import math
 
 import cv2
 import numpy as np
@@ -13,8 +14,8 @@ def rolling_avg(paths):
 
 
 def to_polar(line):
-    """Convert lines in Cartesian system to lines in polar system.
-    """
+    '''Convert lines in Cartesian system to lines in polar system.
+    '''
     x1, y1 = line[0], line[1]
     x2, y2 = line[2], line[3]
 
@@ -28,8 +29,8 @@ def to_polar(line):
 
 
 def to_cartesian(line):
-    """Convert lines in polar system to lines in Cartesian system.
-    """
+    '''Convert lines in polar system to lines in Cartesian system.
+    '''
     rho, theta = line[0], line[1]
     a = np.cos(theta)
     b = np.sin(theta)
@@ -47,7 +48,7 @@ def euclid_dist(p1, p2):
     y1 = p1[1]
     x2 = p2[0]
     y2 = p2[1]
-    return (x1 - x2) ** 2 + (y1 - y2) ** 2
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
 def approx_dist(p1, p2):
@@ -55,11 +56,11 @@ def approx_dist(p1, p2):
 
 
 def eliminate_duplicates(lines, rho_threshold=10, theta_threshold=.1):
-    """Remove similar lines, based on a threshold
-    """
+    '''Remove similar lines, based on a threshold
+    '''
     eliminated = np.zeros(len(lines), dtype=bool)
 
-    for i, j in combinations(range(len(lines)), 2):
+    for i, j in itertools.combinations(range(len(lines)), 2):
         if eliminated[i] or eliminated[j]:
             continue
 
@@ -73,14 +74,14 @@ def eliminate_duplicates(lines, rho_threshold=10, theta_threshold=.1):
 
 
 def intersections_polar(a, b):
-    """Calculate intersection (cartesian) between two lines in polar form
-    """
+    '''Calculate intersection (cartesian) between two lines in polar form
+    '''
     return intersections(to_cartesian(a), to_cartesian(b))
 
 
 def intersections(a, b):
-    """Calculate intersection between two lines in cartesian form
-    """
+    '''Calculate intersection between two lines in cartesian form
+    '''
     x1, y1,  x2,  y2 = a[0], a[1], a[2], a[3]
     x3, y3, x4, y4 = b[0], b[1], b[2], b[3]
     d = ((x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4))
@@ -102,10 +103,10 @@ def out_of_ratio(width, height, ratio):
         and (width/height < ratio or height/width < ratio)
 
 
-def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.55):
-    """Pick 4 lines which are most likely to be the edges of the painting,
+def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.25):
+    '''Pick 4 lines which are most likely to be the edges of the painting,
     used for perspective correction
-    """
+    '''
 
     if len(lines) < 4:
         logging.warning(
@@ -157,11 +158,11 @@ def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.55):
     good_ratio = False
     while not good_ratio:
         # Get 3 corners of the rectangle
-        p1 = intersections_polar(
+        p1 = intersections(
             lines[best], lines[perpendicular[best][perp1][0]])
-        p2 = intersections_polar(
+        p2 = intersections(
             lines[best], lines[perpendicular[best][perp2][0]])
-        p3 = intersections_polar(
+        p3 = intersections(
             lines[parallel[best][par][0]], lines[perpendicular[best][perp1][0]])
 
         # Not really width and height, it can be the other way around as well
@@ -174,11 +175,11 @@ def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.55):
                 # Look for maximum distance to remove (perp1 or perp2)
                 # Calculate new intersections of best with perp1 + 1 and with perp2 -1 and the corresponding distances
 
-                p = intersections_polar(
+                p = intersections(
                     lines[best], lines[perpendicular[best][perp1+1][0]])
                 dist_perp1 = euclid_dist(p2, p)
 
-                p = intersections_polar(
+                p = intersections(
                     lines[best], lines[perpendicular[best][perp2-1][0]])
                 dist_perp2 = euclid_dist(p1, p)
 
@@ -199,11 +200,11 @@ def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.55):
             good_ratio = True
 
     # Calculate final intersections
-    p1 = intersections_polar(
+    p1 = intersections(
         lines[best], lines[perpendicular[best][perp1][0]])
-    p2 = intersections_polar(
+    p2 = intersections(
         lines[best], lines[perpendicular[best][perp2][0]])
-    p3 = intersections_polar(
+    p3 = intersections(
         lines[parallel[best][par][0]], lines[perpendicular[best][perp1][0]])
 
     width = euclid_dist(p1, p2)
@@ -212,7 +213,7 @@ def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.55):
     # Check if the ratio is now good
     if out_of_ratio(width, height, ratio):
         # Ratio is still bad, so there is no good bounding rectangle
-        logging.warning("Perspective transform: Bad aspect ratio (%f) ",
+        logging.warning('Perspective transform: Bad aspect ratio (%f) ',
                         min(width / height, height/width))
         return []
     else:

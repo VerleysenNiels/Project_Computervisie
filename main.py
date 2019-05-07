@@ -188,8 +188,10 @@ class PaintingClassifier(object):
                     next_hall = math_utils.rolling_avg(labels)
                     if hall is None or hall == next_hall:
                         hall = next_hall
+                        stuck = 0
                     elif Room_graph.transition_possible(hall, next_hall):
                             hall = next_hall
+                            stuck = 0
                     else:
                         stuck += 1
 

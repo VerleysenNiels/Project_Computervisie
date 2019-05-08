@@ -130,7 +130,7 @@ class PaintingClassifier(object):
             with open('descriptors.pickle', 'rb') as file:
                 descriptors = pickle.load(file)
             with open('histograms.pickle', 'rb') as file:
-                descriptors = pickle.load(file)
+                histograms = pickle.load(file)
 
         else:
             logging.info('Computing descriptors from db...')

@@ -118,6 +118,16 @@ class FeatureExtraction(object):
         filtered_img = cv2.filter2D(grayscale, cv2.CV_8UC3, g_kernel)
         return filtered_img, g_kernel
 
+    def extract_hist(self, images):
+        hist = cv2.calcHist(images, [0], None, [256], [0, 256])
+        print("EXTRACT_HIST")
+        return hist
+
+    def compare_hist(self, hist1, hist2):
+        print("COMPARE HIST")
+        score = cv2.compareHist(hist1, hist2, method=cv2.HISTCMP_CORREL)
+        return score
+
 
 if __name__ == "__main__":
     logging.basicConfig(

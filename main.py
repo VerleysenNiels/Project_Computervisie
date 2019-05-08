@@ -129,17 +129,26 @@ class PaintingClassifier(object):
             logging.info('Reading descriptors from descriptors.pickle...')
             with open('descriptors.pickle', 'rb') as file:
                 descriptors = pickle.load(file)
+            with open('histograms.pickle', 'rb') as file:
+                descriptors = pickle.load(file)
+
         else:
             logging.info('Computing descriptors from db...')
             descriptors = dict()
+            histograms = dict()
             for path, img in io_utils.imread_folder('./db', resize=False):
                 if img.shape == (512, 512, 3):
                     descriptors[path] = extr.extract_keypoints(img)
+                    histograms[path] = extr.extract_hist(img)
+
 
             logging.info('Writing descriptors to descriptors.pickle...')
             with open('descriptors.pickle', 'wb+') as file:
                 # protocol 0 is printable ASCII
                 pickle.dump(descriptors, file,  protocol=-1)
+
+            with open('histograms.pickle', 'wb+') as file:
+                pickle.dump(histograms, file, protocol=-1)
 
         logging.warning('Press Q to quit')
         labels = []
@@ -175,10 +184,13 @@ class PaintingClassifier(object):
                     img = perspective.perspective_transform(frame, points)
 
                     descriptor = extr.extract_keypoints(img)
+                    histogram_frame = extr.extract_hist(img)
                     for path in descriptors:
                         if descriptors[path] is not None:
-                            score = extr.match_keypoints(
+                            score_key = extr.match_keypoints(
                                 descriptor, descriptors[path])
+                            score_hist = extr.compare_hist(histogram_frame, histograms[path])
+                            score = 0.5*score_key + 0.5*score_hist
                             if score < best_score:
                                 best = path
                                 best_score = score

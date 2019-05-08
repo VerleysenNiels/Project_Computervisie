@@ -144,6 +144,7 @@ class PaintingClassifier(object):
         logging.warning('Press Q to quit')
         labels = []
 
+        grondplan = cv2.imread(".\msk_grondplan.jpg")
         hall = None  # Keep track of current room
         stuck = 0  # Counter to detect being stuck in a room (bug when using graph)
         modes = ["ERROR_MODE", "WARNING_MODE", "INFO_MODE", "DEBUG_MODE"]
@@ -190,8 +191,9 @@ class PaintingClassifier(object):
                         hall = next_hall
                         stuck = 0
                     elif Room_graph.transition_possible(hall, next_hall):
-                            hall = next_hall
-                            stuck = 0
+                        viz_utils.draw_path_line(grondplan, str(next_hall), str(hall))
+                        hall = next_hall
+                        stuck = 0
                     else:
                         stuck += 1
 
@@ -213,6 +215,7 @@ class PaintingClassifier(object):
             frame = cv2.putText(frame, modes[args.verbose_count], (20, 20), cv2.FONT_HERSHEY_PLAIN,
                                 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
+            cv2.imshow('Grondplan', grondplan)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 

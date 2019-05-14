@@ -179,7 +179,7 @@ class PaintingClassifier(object):
 
                     best_score = math.inf
                     best = '?'
-
+                    current = best
                     points = perspective.order_points(points)
                     img = perspective.perspective_transform(frame, points)
 
@@ -194,8 +194,12 @@ class PaintingClassifier(object):
                             if score < best_score:
                                 best = path
                                 best_score = score
-                    logging.info(best)
+                    logging.info(best + " asdasd")
                     if best != '?':
+                        if best != current:
+                            current = best
+                            painting = cv2.imread(best)
+                            cv2.imshow('painting', painting)
                         labels.append(best)
                         labels = labels[-15:]
                     next_hall = math_utils.rolling_avg(labels)

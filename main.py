@@ -153,6 +153,8 @@ class PaintingClassifier(object):
         logging.warning('Press Q to quit')
         labels = []
 
+        painting = np.zeros((10, 10, 3), np.uint8)
+
         grondplan = cv2.imread(".\msk_grondplan.jpg")
         hall = None  # Keep track of current room
         stuck = 0  # Counter to detect being stuck in a room (bug when using graph)
@@ -194,12 +196,11 @@ class PaintingClassifier(object):
                             if score < best_score:
                                 best = path
                                 best_score = score
-                    logging.info(best + " asdasd")
+                    logging.info(best)
                     if best != '?':
                         if best != current:
                             current = best
                             painting = cv2.imread(best)
-                            cv2.imshow('painting', painting)
                         labels.append(best)
                         labels = labels[-15:]
                     next_hall = math_utils.rolling_avg(labels)
@@ -221,10 +222,17 @@ class PaintingClassifier(object):
 
 
             # Write amount of blurriness
+
                 frame = cv2.putText(frame, "Not blurry: " + str(round(blurry)), (20, 40), cv2.FONT_HERSHEY_PLAIN,
                                     1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             else:
                 frame = cv2.putText(frame, "Too blurry: " + str(round(blurry)), (20, 40), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
+
+            h, w = frame.shape[:2]
+            h1, w1 = painting.shape[:2]
+            blank_image = np.zeros((h, int(0.5*w), 3), np.uint8)
+            blank_image[0:h1, 0:w1] = painting
+            frame = np.concatenate((frame, blank_image), axis=1)
 
             # Write predicted room and display image
             frame = cv2.putText(frame, hall, (20, 60), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 0, 0), lineType=cv2.LINE_AA)

@@ -5,6 +5,7 @@ import csv
 import perspective
 import math
 import numpy as np
+import label_util
 
 """
     Run this with the right settings for the folder to read and the csv to write
@@ -33,23 +34,6 @@ def euclidian_dist(p1, p2):
     y2 = p2[1]
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
-def angle_betw_lines (line1, line2):
-    # equation as "y = ax + b"
-    # a = (y2 - y1)/(x2 - x1)
-    dx1 = (line1[1, 0] - line1[0, 0])
-    dx2 = (line2[1, 0] - line2[0, 0])
-    dy1 = (line1[1, 1] - line1[0, 1])
-    dy2 = (line2[1, 1] - line2[0, 1])
-    theta1 = math.pi/2
-    theta2 = math.pi/2
-    if dx1 != 0:
-        theta1 = math.atan(dy1 / dx1)
-    if dx2 != 0:
-        theta2 = math.atan(dy2 / dx2)
-    phi = theta1 - theta2
-    while phi<0:
-        phi += math.pi
-    return phi
 
 def calculate_area (pts):
     pts = perspective.order_points(pts)
@@ -58,8 +42,8 @@ def calculate_area (pts):
     c = euclidian_dist(pts[0], pts[1])
     d = euclidian_dist(pts[1], pts[2])
     t = 0.5 * (a + b + c + d)
-    angle1 = angle_betw_lines(np.array([pts[2], pts[3]]), np.array([pts[3], pts[0]]))
-    angle2 = angle_betw_lines(np.array([pts[0], pts[1]]), np.array([pts[1], pts[2]]))
+    angle1 = label_util.angle_betw_lines(np.array([pts[2], pts[3]]), np.array([pts[3], pts[0]]))
+    angle2 = label_util.angle_betw_lines(np.array([pts[0], pts[1]]), np.array([pts[1], pts[2]]))
     area = math.sqrt(((t - a) * (t - b) * (t - c) * (t - d))
                      - (a * b * c * d * ((math.cos((angle1 + angle2)/2)) ** 2)))
     return area

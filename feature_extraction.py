@@ -99,7 +99,7 @@ class FeatureExtraction(object):
         matches = sorted(matches, key=lambda x: x.distance)
         if len(matches) == 0:
             return math.inf
-            
+
         score = 0
         for m in matches[:20]:
             score += m.distance
@@ -108,7 +108,9 @@ class FeatureExtraction(object):
 
     def texture_extraction(self, img):
         grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        lbp = feature.local_binary_pattern(grayscale, 32, 4).astype('uint8')
+        radius = 3
+        n_points = 8 * radius
+        lbp = feature.local_binary_pattern(grayscale, n_points, radius)
         return lbp
 
     def gabor_filtering(self, img):
@@ -124,23 +126,9 @@ if __name__ == "__main__":
         format="[%(levelname)s] %(asctime)s - %(message)s", level=logging.DEBUG
     )
     extr = FeatureExtraction()
-    descriptors = list()
-    for path, img in io_utils.imread_folder('./db', resize=False):
-        if img.shape == (512, 512, 3):
-            descriptors.append((extr.extract_keypoints(
-                cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)), path))
-
-    best_score = 10000
-    best = ''
-    img = io_utils.imread(
-        'images/pictures_msk_smak_galaxy_A5/query_paintings_20/20190203_110120.jpg')
-    des = extr.extract_keypoints(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
-    for d in descriptors:
-        if d[0] is not None:
-            score = extr.match_keypoints(des, d[0])
-            logging.debug('%s: %f', d[1], score)
-            if score < best_score:
-                best = d[1]
-                best_score = score
-
-    logging.info(best)
+    for _, img in io_utils.imread_folder('images/'):
+        # img = cv2.medianBlur(img, 9)
+        img = extr.texture_extraction(img)
+        img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
+        img = ((img > 254) + (img < 2)) * img
+        viz_utils.imshow(img)

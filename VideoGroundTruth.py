@@ -30,7 +30,7 @@ class VideoGroundTruth:
                 return None
             else:
                 self.index += 1
-        return self.rooms[self.index
+        return self.rooms[self.index]
 
     def clear(self):
         """Clears the class"""

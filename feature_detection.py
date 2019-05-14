@@ -74,9 +74,9 @@ def detect_perspective(img, remove_hblur=False, minLineLength=50, maxLineGap=150
         An array of 4 points. If the perspective cannot be detected, the array
         is empty
     """
-    img = cv2.medianBlur(img, 5)
+    blurred = cv2.medianBlur(img, 5)
     all_lines = detect_lines(
-        img,
+        blurred,
         remove_hblur=remove_hblur,
         minLineLength=minLineLength,
         maxLineGap=maxLineGap)  # Detect all lines

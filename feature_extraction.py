@@ -3,7 +3,6 @@ import numpy as np
 import logging
 import viz_utils
 import io_utils
-from skimage import feature
 import math
 
 
@@ -106,13 +105,6 @@ class FeatureExtraction(object):
         # low score indicates good match
         return score / min(len(matches), 20)
 
-    def texture_extraction(self, img):
-        grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        radius = 3
-        n_points = 8 * radius
-        lbp = feature.local_binary_pattern(grayscale, n_points, radius)
-        return lbp
-
     def gabor_filtering(self, img):
         g_kernel = cv2.getGaborKernel(
             (21, 21), 8.0, 0, 10.0, 0.5, 0, ktype=cv2.CV_32F)
@@ -136,7 +128,6 @@ if __name__ == "__main__":
     extr = FeatureExtraction()
     for _, img in io_utils.imread_folder('images/'):
         # img = cv2.medianBlur(img, 9)
+        viz_utils.imshow(img)
         img = extr.texture_extraction(img)
-        img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
-        img = ((img > 254) + (img < 2)) * img
         viz_utils.imshow(img)

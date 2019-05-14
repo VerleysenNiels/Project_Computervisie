@@ -6,6 +6,7 @@ import math_utils
 from perspective import perspective_transform
 from itertools import combinations
 import logging
+from skimage import feature
 
 
 def detect_lines(img, threshold=128, canny_treshold=150, remove_hblur=False, minLineLength=50, maxLineGap=150):
@@ -30,18 +31,20 @@ def detect_lines(img, threshold=128, canny_treshold=150, remove_hblur=False, min
 
 def detect_contours(img):
     """
-    NOT USED
     Detect contours using findContours
     """
+    img = cv2.blur(img, (11, 11))
     contours, hierarchy = cv2.findContours(
-        img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cnt = contours[0]
-    epsilon = 0.1 * cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon, True)
-    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    cv2.drawContours(img, cnt, -1, (0, 0, 0), 5)
-    viz_utils.imshow(img, resize=False)
-    return img
+        img.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    filtered = []
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > 2000:
+            filtered.append(cnt)
+    filtered = np.array(filtered)
+    out = np.zeros_like(img)
+    out = cv2.drawContours(out, filtered, -1, (255, 255, 255), cv2.FILLED)
+    return out
 
 
 def detect_corners(img):
@@ -87,6 +90,7 @@ def detect_perspective(img, remove_hblur=False, minLineLength=50, maxLineGap=150
     # all_corners = detect_corners(img)
     lines = math_utils.bounding_rect(
         all_lines, None)  # Pick best 4 lines
+    # lines = math_utils.bounding_rect_2(all_lines, estimate)
 
     if len(lines) < 4:
         return [], img
@@ -124,3 +128,21 @@ def equalize_histogram(img):
 def dilate(img):
     img2 = cv2.dilate(img, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)))
     return img2
+
+
+def local_binary_pattern(img):
+    grayscale = equalize_histogram(img)
+    grayscale = cv2.cvtColor(grayscale, cv2.COLOR_BGR2GRAY)
+    radius = 5
+    n_points = 8 * radius
+    lbp = feature.local_binary_pattern(
+        grayscale, n_points, radius, method='uniform')
+
+    max = np.max(lbp)
+    lbp = ((lbp <= .75 * max) * (lbp >= .1 * max)) * lbp
+    lbp = cv2.normalize(lbp, None, 0, 255, cv2.NORM_MINMAX).astype('uint8')
+
+    lbp = cv2.medianBlur(lbp, 3)
+    lbp = np.pad(lbp[10:img.shape[0] - 10, 10:img.shape[1] - 10],
+                 (10, 10), 'constant', constant_values=(0, 0))  # Remove edge behaviour
+    return lbp

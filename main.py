@@ -14,7 +14,7 @@ import io_utils
 import math_utils
 import perspective
 import viz_utils
-import Room_graph
+import room_graph
 from classifiers import RandomForestClassifier
 from feature_extraction import FeatureExtraction
 
@@ -141,7 +141,6 @@ class PaintingClassifier(object):
                     descriptors[path] = extr.extract_keypoints(img)
                     histograms[path] = extr.extract_hist(img)
 
-
             logging.info('Writing descriptors to descriptors.pickle...')
             with open('descriptors.pickle', 'wb+') as file:
                 # protocol 0 is printable ASCII
@@ -155,7 +154,8 @@ class PaintingClassifier(object):
 
         grondplan = cv2.imread(".\msk_grondplan.jpg")
         hall = None  # Keep track of current room
-        stuck = 0  # Counter to detect being stuck in a room (bug when using graph)
+        # Counter to detect being stuck in a room (bug when using graph)
+        stuck = 0
         modes = ["ERROR_MODE", "WARNING_MODE", "INFO_MODE", "DEBUG_MODE"]
 
         for frame in io_utils.read_video(args.file.name, interval=5):
@@ -168,7 +168,6 @@ class PaintingClassifier(object):
             # compute the Laplacian of the image and then return the focus
             # measure, which is simply the variance of the Laplacian
             blurry = cv2.Laplacian(frame, cv2.CV_64F).var()
-
 
             # Change this border for blurry
             if blurry > 65:
@@ -189,7 +188,8 @@ class PaintingClassifier(object):
                         if descriptors[path] is not None:
                             score_key = extr.match_keypoints(
                                 descriptor, descriptors[path])
-                            score_hist = extr.compare_hist(histogram_frame, histograms[path])
+                            score_hist = extr.compare_hist(
+                                histogram_frame, histograms[path])
                             score = 0.5*score_key + 0.5*score_hist
                             if score < best_score:
                                 best = path
@@ -206,8 +206,9 @@ class PaintingClassifier(object):
                     if hall is None or hall == next_hall:
                         hall = next_hall
                         stuck = 0
-                    elif Room_graph.transition_possible(hall, next_hall):
-                        viz_utils.draw_path_line(grondplan, str(next_hall), str(hall))
+                    elif room_graph.transition_possible(hall, next_hall):
+                        viz_utils.draw_path_line(
+                            grondplan, str(next_hall), str(hall))
                         hall = next_hall
                         stuck = 0
                     else:
@@ -219,15 +220,16 @@ class PaintingClassifier(object):
                         hall = next_hall
                         stuck = 0
 
-
             # Write amount of blurriness
                 frame = cv2.putText(frame, "Not blurry: " + str(round(blurry)), (20, 40), cv2.FONT_HERSHEY_PLAIN,
                                     1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             else:
-                frame = cv2.putText(frame, "Too blurry: " + str(round(blurry)), (20, 40), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
+                frame = cv2.putText(frame, "Too blurry: " + str(round(blurry)), (20, 40),
+                                    cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
 
             # Write predicted room and display image
-            frame = cv2.putText(frame, hall, (20, 60), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 0, 0), lineType=cv2.LINE_AA)
+            frame = cv2.putText(
+                frame, hall, (20, 60), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 0, 0), lineType=cv2.LINE_AA)
             frame = cv2.putText(frame, modes[args.verbose_count], (20, 20), cv2.FONT_HERSHEY_PLAIN,
                                 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)

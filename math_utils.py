@@ -3,15 +3,32 @@ import os
 import random
 import itertools
 import math
-
+import perspective
 import cv2
 import numpy as np
+from sklearn.metrics import f1_score
 
 
 def rolling_avg(paths):
-    samples = list(map(lambda x: os.path.basename(os.path.dirname(x)), paths))
-    return max(set(samples), key=samples.count)
+    if paths and len(paths) != 0: 
+        samples = list(map(lambda x: os.path.basename(os.path.dirname(x)), paths))
+        return max(set(samples), key=samples.count)
+    return ''
 
+
+def mean_difference(points, img):
+    mask_1 = create_mask(points, img, False)
+    mask_2 = create_mask(points, img, True)
+    mean_1 = cv2.mean(img, mask_1)
+    mean_2 = cv2.mean(img, mask_2)
+    diff = (mean_1[0] - mean_2[0])**2
+    + (mean_1[1] - mean_2[1])**2
+    + (mean_1[2] - mean_2[2])**2
+    return diff
+
+def precision(points, img):
+    mask = create_mask(points, img, False)
+    return f1_score(mask.flatten()//255, mask.flatten()//255)  
 
 def to_polar(line):
     '''Convert lines in Cartesian system to lines in polar system.
@@ -223,3 +240,77 @@ def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.25):
         l3 = lines[perpendicular[best][perp1][0]]
         l4 = lines[perpendicular[best][perp2][0]]
         return np.array([l1, l2, l3, l4])
+
+
+def bounding_rect_2(lines, estimate, theta_threshold=.1):
+    if len(lines) < 4:
+        logging.warning(
+            'Perspective transform: Not enough lines found (%d).', len(lines))
+        return []
+
+    max_diff = 0
+    max = np.array([0, 1, 2, 3])
+    HALF_PI = np.pi / 2
+
+    parallel = [[] for _ in range(len(lines))]
+    perpendicular = [[] for _ in range(len(lines))]
+    logging.debug('Calculating parallel/perpendiculars...')
+    for i, j in itertools.combinations(range(len(lines)), 2):
+        r1, theta1 = to_polar(lines[i])
+        r2, theta2 = to_polar(lines[j])
+
+        angle_diff = min(abs(theta1 - theta2), abs(theta2 - theta1))
+        if angle_diff < theta_threshold:
+            parallel[i].append(j)
+        elif HALF_PI - theta_threshold < angle_diff < HALF_PI + theta_threshold:
+            perpendicular[i].append(j)
+
+
+    logging.debug('Calculating best score...')
+    for i in range(len(lines)):
+        for k in range(len(parallel[i])):
+            for j, l in itertools.combinations(range(len(perpendicular[i])), 2):
+                l1 = lines[i]
+                l2 = lines[perpendicular[i][j]]
+                l3 = lines[parallel[i][k]]
+                l4 = lines[perpendicular[i][l]]
+
+                p1 = intersections(l1, l2)
+                p2 = intersections(l2, l3)
+                p3 = intersections(l3, l4)
+                p4 = intersections(l4, l1)
+                points = np.array([p1, p2, p3, p4])
+
+                mean_diff = mean_difference(points, estimate)
+                # mean_diff = precision(points, estimate)
+                if mean_diff > max_diff:
+                    max_diff = mean_diff
+                    max = np.array([l1, l3, l2, l4])
+    return max
+
+
+def order_points(pts):
+    """Orders points clockwise, starting w top left
+    """
+    rect = np.zeros((4, 2), dtype="float32")
+    s = pts.sum(axis=1)
+    rect[0] = pts[np.argmin(s)]
+    rect[2] = pts[np.argmax(s)]
+    diff = np.diff(pts, axis=1)
+    rect[1] = pts[np.argmin(diff)]
+    rect[3] = pts[np.argmax(diff)]
+    return rect
+
+
+def create_mask(points, img, invert=True):
+    '''Create a binary mask 
+    '''
+    points = order_points(points).astype('int32')
+    pts = points.reshape((-1, 1, 2))
+    if not invert:
+        mask = np.zeros((img.shape[0], img.shape[1]), dtype='uint8')
+        mask = cv2.fillPoly(mask, [pts], (255, 255, 255))
+    else:
+        mask = np.full((img.shape[0], img.shape[1]), 255, dtype='uint8')
+        mask = cv2.fillPoly(mask, [pts], (0, 0, 0))
+    return mask

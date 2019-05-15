@@ -1,5 +1,8 @@
 import math
 import perspective
+import cv2
+import numpy as np
+import math_utils
 
 def angle_betw_lines (line1, line2):
     # equation as "y = ax + b"
@@ -94,3 +97,140 @@ def no_intersection(quad1, quad2):
 
     # quadrilateral2 left of quadrilateral1
     return False
+
+
+def draw_quad(pts, image, col):
+    cv2.line(image, tuple(pts[0]), tuple(pts[1]), col)
+    cv2.line(image, tuple(pts[1]), tuple(pts[2]), col)
+    cv2.line(image, tuple(pts[2]), tuple(pts[3]), col)
+    cv2.line(image, tuple(pts[3]), tuple(pts[0]), col)
+
+
+def euclidian_dist(p1, p2):
+    x1 = p1[0]
+    y1 = p1[1]
+    x2 = p2[0]
+    y2 = p2[1]
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+
+def calculate_area (pts):
+    pts = perspective.order_points(pts)
+    a = euclidian_dist(pts[2], pts[3])
+    b = euclidian_dist(pts[3], pts[0])
+    c = euclidian_dist(pts[0], pts[1])
+    d = euclidian_dist(pts[1], pts[2])
+    t = 0.5 * (a + b + c + d)
+    angle1 = angle_betw_lines(np.array([pts[2], pts[3]]), np.array([pts[3], pts[0]]))
+    angle2 = angle_betw_lines(np.array([pts[0], pts[1]]), np.array([pts[1], pts[2]]))
+    area = math.sqrt(((t - a) * (t - b) * (t - c) * (t - d))
+                     - (a * b * c * d * ((math.cos((angle1 + angle2)/2)) ** 2)))
+    return area
+
+def calculate_intersection(pts1, pts2):
+    pts3 = pts1
+    #first check if either corner lies completely inside of the other (that's the two first ifs
+    #if not, check which lies most inside to get the inside intersection
+    if pts1[0][0] > pts2[0][0] and pts1[0][1] > pts2[0][1]:
+        pts3[0] = pts1[0]
+    elif pts1[0][0] < pts1[0][0] and pts1[0][1] < pts1[0][1]:
+        pts3[0] = pts2[0]
+    else:
+        pta = math_utils.intersections(np.array([pts1[0][0], pts1[0][1], pts1[3][0], pts1[3][1]]),
+                                       np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
+        ptb = math_utils.intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
+                                       np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
+        if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
+            pts3[0] = ptb
+        elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
+            pts3[0] = pta
+        elif ptb[0] > pta[0]:
+            pts3[0] = ptb
+        else:
+            pts3[0] = pta
+    """elif pts1[0][0] > pts2[0][0]:
+        pts3[0] = math_utils.intersections(np.array([pts1[0][0], pts1[0][1], pts1[3][0], pts1[3][1]]),
+                                           np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
+    else:
+        pts3[0] = math_utils.intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
+                                           np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))"""
+
+    if pts1[1][0] < pts2[1][0] and pts1[1][1] > pts2[1][1]:
+        pts3[1] = pts1[1]
+    elif pts1[1][0] > pts2[1][0] and pts1[1][1] < pts2[1][1]:
+        pts3[1] = pts2[1]
+    else:
+        pta = math_utils.intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
+                                      np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
+        ptb = math_utils.intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
+                                      np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
+        if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
+            pts3[1] = ptb
+        elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
+            pts3[1] = pta
+        elif ptb[0] < pta[0]:
+            pts3[1] = ptb
+        else:
+            pts3[1] = pta
+    """elif pts1[1][0] < pts2[1][0]:
+        pts3[1] = math_utils.intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
+                                           np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
+    else:
+        pts3[1] = math_utils.intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
+                                           np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))"""
+
+    if pts1[2][0] < pts2[2][0] and pts1[2][1] < pts2[2][1]:
+        pts3[2] = pts1[2]
+    elif pts1[2][0] > pts2[2][0] and pts1[2][1] > pts2[2][1]:
+        pts3[2] = pts2[2]
+    else:
+        pta = math_utils.intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
+                                      np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
+        ptb = math_utils.intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
+                                      np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
+        if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
+            pts3[2] = ptb
+        elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
+            pts3[2] = pta
+        elif ptb[0] < pta[0]:
+            pts3[2] = ptb
+        else:
+            pts3[2] = pta
+    """elif pts1[2][0] < pts2[2][0]:
+        pts3[2] = math_utils.intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
+                                           np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
+    else:
+        pts3[2] = math_utils.intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
+                                           np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))"""
+
+    if pts1[3][0] > pts2[3][0] and pts1[3][1] < pts2[3][1]:
+        pts3[3] = pts1[3]
+    elif pts1[3][0] < pts2[3][0] and pts1[3][1] > pts2[3][1]:
+        pts3[3] = pts2[3]
+    else:
+        pta = math_utils.intersections(np.array([pts1[3][0], pts1[3][1], pts1[0][0], pts1[0][1]]),
+                                      np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
+        ptb = math_utils.intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
+                                      np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
+        if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
+            pts3[3] = ptb
+        elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
+            pts3[3] = pta
+        elif ptb[0] > pta[0]:
+            pts3[3] = ptb
+        else:
+            pts3[3] = pta
+    """elif pts1[3][0] > pts2[0][0]:
+        pts3[3] = math_utils.intersections(np.array([pts1[3][0], pts1[3][1], pts1[0][0], pts1[0][1]]),
+                                           np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
+    else:
+        pts3[3] = math_utils.intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
+                                           np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))"""
+    pts3 = perspective.order_points(pts3)
+    #intersection = calculate_area(pts3)
+    return pts3 #intersection
+
+
+def calculate_union (pts1, pts2):
+    union = calculate_area(pts1) + calculate_area(pts2) - calculate_intersection(pts1, pts2)
+    return union

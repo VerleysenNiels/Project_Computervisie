@@ -199,7 +199,6 @@ class PaintingClassifier(object):
                     logging.info(best)
                     if best != '?':
                         if best != current:
-                            current = best
                             painting = cv2.imread(best)
                         labels.append(best)
                         labels = labels[-15:]
@@ -230,9 +229,12 @@ class PaintingClassifier(object):
                                     cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
 
             h, w = frame.shape[:2]
-            h1, w1 = painting.shape[:2]
-            blank_image = np.zeros((h, int(0.5*w), 3), np.uint8)
-            blank_image[0:h1, 0:w1] = painting
+            try:
+                h1, w1 = painting.shape[:2]
+                blank_image = np.zeros((h, int(0.5 * w), 3), np.uint8)
+                blank_image[0:h1, 0:w1] = painting
+            except AttributeError:
+                logging.info("Not an image")
             frame = np.concatenate((frame, blank_image), axis=1)
 
             # Write predicted room and display image

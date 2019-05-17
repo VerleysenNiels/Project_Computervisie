@@ -15,6 +15,8 @@ import math_utils
 import perspective
 import viz_utils
 import room_graph
+
+from VideoGroundTruth import VideoGroundTruth
 from classifiers import RandomForestClassifier
 from feature_extraction import FeatureExtraction
 
@@ -121,8 +123,12 @@ class PaintingClassifier(object):
         parser.add_argument("-v", "--verbose", dest="verbose_count",
                             action="count", default=0,
                             help="increases log verbosity for each occurence.")
+        parser.add_argument("-m", "--measure", dest="ground_truth",
+                            help="Passes a file with the ground truth for the video to measure the accuracy")
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
+
+        measurementMode = args.ground_truth is not None and os.path.isfile(args.ground_truth)
 
         extr = FeatureExtraction()
         if os.path.isfile('descriptors.pickle'):
@@ -148,6 +154,13 @@ class PaintingClassifier(object):
 
             with open('histograms.pickle', 'wb+') as file:
                 pickle.dump(histograms, file, protocol=-1)
+
+        groundTruth = None
+        frames_correct = 0
+        frames = 0
+        if measurementMode:
+            groundTruth = VideoGroundTruth()
+            groundTruth.read_file(args.ground_truth)
 
         logging.warning('Press Q to quit')
         labels = []
@@ -242,8 +255,17 @@ class PaintingClassifier(object):
                                 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
             cv2.imshow('Grondplan', grondplan)
+
+            if measurementMode:
+                frames += 1
+                if groundTruth.room_in_frame(frames) == hall:
+                    frames_correct += 1
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
+        if measurementMode:
+            print("Accuracy: " + str(frames_correct/frames))
 
     def _build_logger(self, level):
         logging.basicConfig(

@@ -120,7 +120,7 @@ def out_of_ratio(width, height, ratio):
         and (width/height < ratio or height/width < ratio)
 
 
-def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.25):
+def bounding_rect(lines, corners, theta_threshold=.1, ratio=0.35):
     '''Pick 4 lines which are most likely to be the edges of the painting,
     used for perspective correction
     '''

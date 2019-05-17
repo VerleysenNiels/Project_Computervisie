@@ -168,6 +168,7 @@ class PaintingClassifier(object):
         painting = np.zeros((10, 10, 3), np.uint8)
 
         grondplan = cv2.imread(".\msk_grondplan.jpg")
+        blank_image = None
         hall = None  # Keep track of current room
         # Counter to detect being stuck in a room (bug when using graph)
         stuck = 0
@@ -214,7 +215,7 @@ class PaintingClassifier(object):
                         if best != current:
                             painting = cv2.imread(best)
                         labels.append(best)
-                        labels = labels[-15:]
+                        labels = labels[-10:]
                     next_hall = math_utils.rolling_avg(labels)
                     if hall is None or hall == next_hall:
                         hall = next_hall
@@ -229,7 +230,7 @@ class PaintingClassifier(object):
 
                     # ToDo: Needs finetuning
                     # Alllow transition if algorithm is stuck in a room
-                    if stuck > 17:
+                    if stuck > 30:
                         hall = next_hall
                         stuck = 0
 

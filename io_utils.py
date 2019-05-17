@@ -43,12 +43,17 @@ def imwrite(path, image):
 
 
 def read_video(path, interval=15):
+
     video = cv2.VideoCapture(path)
-    id = 0
-    while(video.isOpened()):
-        ret, frame = video.read()
+    open, frame = video.read()
+    yield frame
+    id = 1
+    while(open):
+        open, frame = video.read()
         if(id % interval == 0):
             yield frame
         id += 1
 
     video.release()
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()

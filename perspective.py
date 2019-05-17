@@ -21,7 +21,7 @@ def perspective_transform(img, points):
     """Transform an image's perspective given 4 (unordered) points and crop the image around it
     """
     if len(points) < 4:
-        return img
+        return cv2.resize(img, (512, 512))
 
     points = order_points(points)
     # Calculate destination rectangle
@@ -36,4 +36,4 @@ def perspective_transform(img, points):
     M = cv2.getPerspectiveTransform(points, dst)
     img = cv2.warpPerspective(img, M, img.shape[1::-1])
     crop_img = img[:512, :512]
-    return crop_img
+    return cv2.resize(crop_img, (512, 512))

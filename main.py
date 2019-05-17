@@ -104,7 +104,7 @@ class PaintingClassifier(object):
         logging.info('Evaluate classifier on training data...')
         accuracy = classifier.eval(X, y)
         logging.info('Accuracy: %f', accuracy)
-        with open(classifier, 'wb+') as file:
+        with open('classifier.pickle', 'wb+') as file:
             pickle.dump(classifier, file)
 
     def infer(self):
@@ -266,6 +266,7 @@ class PaintingClassifier(object):
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
+        cv2.destroyAllWindows()
         if measurementMode:
             print("Accuracy: " + str(frames_correct/frames))
 

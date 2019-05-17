@@ -23,7 +23,7 @@ with open("csv_corners\corners_15.csv", mode = "r") as cornerlabels:
                 print(path1)
                 img = io_utils.imread(path1)
                 pts_lbl = np.array([(int(row[1]), int(row[2])), (int(row[3]), int(row[4])),
-                                    (int(row[5]), int(row[6])), (int(row[7]), int(row[8])), ])
+                                    (int(row[5]), int(row[6])), (int(row[7]), int(row[8]))])
                 #label_util.draw_quad(pts_lbl, img, blue)
                 pts_det, _ = feature_detection.detect_perspective(img)
                 if len(pts_det) >= 4:

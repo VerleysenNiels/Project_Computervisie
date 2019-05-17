@@ -116,12 +116,12 @@ def calculate_area (pts):
                      - (a * b * c * d * ((math.cos((angle1 + angle2)/2)) ** 2)))
     return area
 
-def calculate_intersection(pts1, pts2):
+def get_intersection_pts(pts1, pts2):
     pts1 = perspective.order_points(pts1)
     pts2 = perspective.order_points(pts2)
     pts3 = pts1
-    #first check if either corner lies completely inside of the other (that's the two first ifs
-    #if not, check which lies most inside to get the inside intersection
+    # first check if either corner lies completely inside of the other (that's the two first ifs
+    # if not, check which lies most inside to get the inside intersection
     if not no_intersection(pts1, pts2):
         if point_inside_quad(pts1[0], pts2):
             pts3[0] = pts1[0]
@@ -147,9 +147,9 @@ def calculate_intersection(pts1, pts2):
             pts3[1] = pts2[1]
         else:
             pta = math_utils.intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
-                                          np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
+                                           np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
             ptb = math_utils.intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
-                                          np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
+                                           np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[1] = ptb
             elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
@@ -165,9 +165,9 @@ def calculate_intersection(pts1, pts2):
             pts3[2] = pts2[2]
         else:
             pta = math_utils.intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
-                                          np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
+                                           np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
             ptb = math_utils.intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
-                                          np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
+                                           np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[2] = ptb
             elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
@@ -183,9 +183,9 @@ def calculate_intersection(pts1, pts2):
             pts3[3] = pts2[3]
         else:
             pta = math_utils.intersections(np.array([pts1[3][0], pts1[3][1], pts1[0][0], pts1[0][1]]),
-                                          np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
+                                           np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
             ptb = math_utils.intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
-                                          np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
+                                           np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[3] = ptb
             elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
@@ -194,7 +194,13 @@ def calculate_intersection(pts1, pts2):
                 pts3[3] = ptb
             else:
                 pts3[3] = pta
+        return pts3
+    return np.array([(-1, -1), (-1, -1), (-1, -1), (-1, -1)])
 
+
+def calculate_intersection(pts1, pts2):
+    if not no_intersection(pts1, pts2):
+        pts3 = get_intersection_pts(pts1, pts2)
         pts3 = perspective.order_points(pts3)
         intersection = calculate_area(pts3)
         return intersection

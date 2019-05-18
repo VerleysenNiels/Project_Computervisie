@@ -16,7 +16,7 @@ import perspective
 import viz_utils
 import room_graph
 
-from VideoGroundTruth import VideoGroundTruth
+from video_ground_truth import VideoGroundTruth
 from classifiers import RandomForestClassifier
 from feature_extraction import FeatureExtraction
 
@@ -128,7 +128,8 @@ class PaintingClassifier(object):
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
 
-        measurementMode = args.ground_truth is not None and os.path.isfile(args.ground_truth)
+        measurementMode = args.ground_truth is not None and os.path.isfile(
+            args.ground_truth)
 
         extr = FeatureExtraction()
         if os.path.isfile('descriptors.pickle'):

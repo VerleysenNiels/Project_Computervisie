@@ -9,19 +9,34 @@ import logging
 from skimage import feature
 
 
-def detect_lines(img, threshold=128, canny_treshold=150, remove_hblur=False, minLineLength=50, maxLineGap=150):
+def detect_lines(img, hparams):
     """ Detect lines using HoughLinesP
     """
-    if remove_hblur:
-        img = cv2.erode(img, cv2.getStructuringElement(
-            cv2.MORPH_RECT, (1, 5)), iterations=2)
-    canny = cv2.Canny(img, 2 * canny_treshold // 3, canny_treshold)
-    if remove_hblur:
+    if hparams['remove_hblur']:
+        img = cv2.erode(
+            img,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (1, 5)),
+            iterations=2)
+
+    # contours = local_binary_pattern(img)
+    canny = cv2.Canny(
+        img,
+        2 * hparams['canny_threshold'] // 3,
+        hparams['canny_threshold'])
+
+    if logging.root.level == logging.DEBUG:
+        viz_utils.imshow(canny, norm=True)
+        # viz_utils.imshow(contours, norm=True)
+
+    if hparams['remove_hblur']:
         canny = cv2.dilate(
             canny, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 1)))
 
     lines = cv2.HoughLinesP(
-        canny, 1, (np.pi / 180), threshold, minLineLength=minLineLength, maxLineGap=maxLineGap
+        canny, 1, (np.pi / 180),
+        hparams['hough_threshold'],
+        minLineLength=hparams['min_line_length'],
+        maxLineGap=hparams['max_line_gap']
     )
     try:
         return np.reshape(lines, (-1, 4))
@@ -33,9 +48,10 @@ def detect_contours(img):
     """
     Detect contours using findContours
     """
-    img = cv2.blur(img, (11, 11))
     contours, hierarchy = cv2.findContours(
-        img.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.blur(img, (11, 11)),
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE)
     filtered = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
@@ -69,7 +85,7 @@ def detect_corners(img):
     return corners
 
 
-def detect_perspective(img, remove_hblur=False, minLineLength=50, maxLineGap=150):
+def detect_perspective(img, hparams):
     """Automatically detect perspective points, used in perspective
     transformation.
 
@@ -77,19 +93,17 @@ def detect_perspective(img, remove_hblur=False, minLineLength=50, maxLineGap=150
         An array of 4 points. If the perspective cannot be detected, the array
         is empty
     """
-    blurred = cv2.medianBlur(img, 5)
+    blurred = cv2.medianBlur(img, hparams['pre_median'])
     all_lines = detect_lines(
         blurred,
-        remove_hblur=remove_hblur,
-        minLineLength=minLineLength,
-        maxLineGap=maxLineGap)  # Detect all lines
+        hparams)  # Detect all lines
 
     if logging.root.level == logging.DEBUG:
         img = viz_utils.overlay_lines_cartesian(img, all_lines)
 
     # all_corners = detect_corners(img)
     lines = math_utils.bounding_rect(
-        all_lines, None)  # Pick best 4 lines
+        all_lines, hparams)  # Pick best 4 lines
     # lines = math_utils.bounding_rect_2(all_lines, estimate)
 
     if len(lines) < 4:
@@ -105,9 +119,7 @@ def detect_perspective(img, remove_hblur=False, minLineLength=50, maxLineGap=150
     )  # Calculate intersection points
 
     if logging.root.level == logging.DEBUG:
-        pts = points.reshape((-1, 1, 2))
-        img_lines = cv2.polylines(img, [pts], True, (255, 0, 0), 2)
-        img = viz_utils.overlay_points(img_lines, points)
+        img = viz_utils.overlay_polygon(img, points, color=(255, 0, 0))
 
     return points, img
 
@@ -139,7 +151,7 @@ def local_binary_pattern(img):
         grayscale, n_points, radius, method='uniform')
 
     max = np.max(lbp)
-    lbp = ((lbp <= .75 * max) * (lbp >= .1 * max)) * lbp
+    lbp = ((lbp <= .6 * max) * (lbp >= .4 * max)) * 255
     lbp = cv2.normalize(lbp, None, 0, 255, cv2.NORM_MINMAX).astype('uint8')
 
     lbp = cv2.medianBlur(lbp, 3)

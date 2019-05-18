@@ -13,13 +13,15 @@ python main.py COMMAND [ARGS]
 
 Commands:
 
-build [DIRECTORY]  Build database from folder (recursively)
-eval               Evaluate classifier on database
+build [IMG_DIR]                 Build database from folder (recursively)
+eval  [IMG_DIR] [GROUND_TRUTH]  Evaluate corner detection based on ground truth csv
+infer [VIDEO]                   See the model in action on a video
 
 Options:
 
--v     set logging to INFO (default: WARNING)
--v -v  set logging to DEBUG (default: WARNING)
+-v       set logging to WARNING (default: CRITICAL)
+-v -v    set logging to INFO    (default: CRITICAL)
+-v -v -v set logging to DEBUG   (default: CRITICAL)
 ```
 
 For example,

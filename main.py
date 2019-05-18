@@ -19,36 +19,48 @@ import room_graph
 from video_ground_truth import VideoGroundTruth
 from classifiers import RandomForestClassifier
 from feature_extraction import FeatureExtraction
+from detection_performance import IoU
 
 
 class PaintingClassifier(object):
     def __init__(self):
+        description = R'''
+        This tool helps you detect the hall you are in at the MSK in Ghent.
+        The tool requires an image folder with paintings. The name of the 
+        parent directory is the hall where the painting is located. 
+        '''
         self.check_versions()
         parser = argparse.ArgumentParser(
-            description="Locate a painting in the MSK")
+            description=description,
+            formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument(
-            "command", choices=["build", "train", "infer"], help="Subcommand to run"
+            'command',
+            choices=['build', 'eval', 'infer'],
+            help='Subcommand to run. See main.py SUBCOMMAND -h for more info.'
         )
 
         args = parser.parse_args(sys.argv[1:2])
         if not hasattr(self, args.command):
-            print("Unrecognized command")
+            print('Unrecognized command')
             parser.print_help()
             exit(1)
-
         getattr(self, args.command)()
 
     def check_versions(self):
-        assert cv2.__version__.startswith("4.")
+        '''Check python package versions
+        '''
+        assert cv2.__version__.startswith('4.')
 
     def build(self):
-        parser = argparse.ArgumentParser(
-            description="Build painting database from raw images directory"
-        )
-        parser.add_argument("directory")
-        parser.add_argument("-v", "--verbose", dest="verbose_count",
-                            action="count", default=0,
-                            help="increases log verbosity for each occurence.")
+        description = R'''
+        Description:
+            Build painting database from raw images directory.
+        Example:
+            python main.py build .\images\zalen\ -v
+        '''
+        parser = self._build_parser(description)
+        parser.add_argument('directory')
+
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
 
@@ -67,48 +79,31 @@ class PaintingClassifier(object):
             logging.info('Writing to ' + out_path)
             io_utils.imwrite(out_path, img)
 
-    def train(self):
-        """ Train classifier built from db folder.
-            Example command:
-
-        """
-        parser = argparse.ArgumentParser(description="")
-        parser.add_argument("-v", "--verbose", dest="verbose_count",
-                            action="count", default=0,
-                            help="increases log verbosity for each occurence.")
+    def eval(self):
+        description = R'''
+        Description: 
+            Evaluate the classifier on prelabeled data
+        Example:
+            python main.py eval .\images\zalen\ .\csv_corners\all.csv -o .\csv_detection_perf\perf_all.csv -v
+        '''
+        parser = self._build_parser(description)
+        parser.add_argument(
+            'image_dir',
+            help='Path to original images dir')
+        parser.add_argument(
+            'ground_truth',
+            help='Path to csv with corner labels')
+        parser.add_argument(
+            '-o', '--output',
+            help='Path to output log file')
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
 
-        logging.info('Build features from ./db')
-        feature_extraction = FeatureExtraction()
-        X, y = [], []
-        for path, img in io_utils.imread_folder('./db', resize=False):
-            if img.shape != (512, 512, 3):
-                logging.error(
-                    'Skipping %s because of incorrect shape %s', path, img.shape)
-                continue
-            label = os.path.basename(os.path.dirname(path))
-            y.append(label)
-
-            features = feature_extraction.extract_features(img)
-            X.append(features)
-
-        X = np.array(X)
-        y = np.array(y)
-
-        logging.info('Train classifier on %d samples...', X.shape[0])
-        logging.debug('X.shape = %s', X.shape)
-        logging.debug('y.shape = %s', y.shape)
-        classifier = RandomForestClassifier()
-        classifier.train(X, y)
-        logging.info('Evaluate classifier on training data...')
-        accuracy = classifier.eval(X, y)
-        logging.info('Accuracy: %f', accuracy)
-        with open('classifier.pickle', 'wb+') as file:
-            pickle.dump(classifier, file)
+        iou = IoU(args.image_dir)
+        avg_iou = iou.compute_all(args.ground_truth, args.output)
 
     def infer(self):
-        '''
+        description = R'''
         Example:
             python main.py infer .\videos\MSK_01.mp4 -v -v
 
@@ -117,14 +112,14 @@ class PaintingClassifier(object):
             amount of previous labels used to determine the average label
             amount of transitions the algorithm wants to change room, but is not allowed (prevent being stuck in wrong room)
         '''
-        parser = argparse.ArgumentParser(description="")
+        parser = self._build_parser(description)
         parser.add_argument(
-            "file", help="Video file to infer the hall ID from.", type=argparse.FileType('r'))
-        parser.add_argument("-v", "--verbose", dest="verbose_count",
-                            action="count", default=0,
-                            help="increases log verbosity for each occurence.")
-        parser.add_argument("-m", "--measure", dest="ground_truth",
-                            help="Passes a file with the ground truth for the video to measure the accuracy")
+            'file',
+            help='Video file to infer the hall ID from.',
+            type=argparse.FileType('r'))
+        parser.add_argument(
+            '-m', '--measure', dest='ground_truth',
+            help='Passes a file with the ground truth for the video to measure the accuracy')
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
 
@@ -150,9 +145,9 @@ class PaintingClassifier(object):
 
             logging.info('Writing descriptors to descriptors.pickle...')
             with open('descriptors.pickle', 'wb+') as file:
-                # protocol 0 is printable ASCII
                 pickle.dump(descriptors, file,  protocol=-1)
 
+            logging.info('Writing histograms to histograms.pickle...')
             with open('histograms.pickle', 'wb+') as file:
                 pickle.dump(histograms, file, protocol=-1)
 
@@ -168,12 +163,12 @@ class PaintingClassifier(object):
 
         painting = np.zeros((10, 10, 3), np.uint8)
 
-        grondplan = cv2.imread(".\msk_grondplan.jpg")
+        grondplan = cv2.imread('.\msk_grondplan.jpg')
         blank_image = None
         hall = None  # Keep track of current room
         # Counter to detect being stuck in a room (bug when using graph)
         stuck = 0
-        modes = ["ERROR_MODE", "WARNING_MODE", "INFO_MODE", "DEBUG_MODE"]
+        modes = ['ERROR_MODE', 'WARNING_MODE', 'INFO_MODE', 'DEBUG_MODE']
 
         for frame in io_utils.read_video(args.file.name, interval=5):
             frame = cv2.resize(
@@ -237,10 +232,10 @@ class PaintingClassifier(object):
 
             # Write amount of blurriness
 
-                frame = cv2.putText(frame, "Not blurry: " + str(round(blurry)), (20, 40), cv2.FONT_HERSHEY_PLAIN,
+                frame = cv2.putText(frame, 'Not blurry: ' + str(round(blurry)), (20, 40), cv2.FONT_HERSHEY_PLAIN,
                                     1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             else:
-                frame = cv2.putText(frame, "Too blurry: " + str(round(blurry)), (20, 40),
+                frame = cv2.putText(frame, 'Too blurry: ' + str(round(blurry)), (20, 40),
                                     cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
 
             h, w = frame.shape[:2]
@@ -249,7 +244,7 @@ class PaintingClassifier(object):
                 blank_image = np.zeros((h, int(0.5 * w), 3), np.uint8)
                 blank_image[0:h1, 0:w1] = painting
             except AttributeError:
-                logging.info("Not an image")
+                logging.info('Not an image')
             frame = np.concatenate((frame, blank_image), axis=1)
 
             # Write predicted room and display image
@@ -270,13 +265,23 @@ class PaintingClassifier(object):
 
         cv2.destroyAllWindows()
         if measurementMode:
-            print("Accuracy: " + str(frames_correct/frames))
+            print('Accuracy: ' + str(frames_correct/frames))
 
     def _build_logger(self, level):
         logging.basicConfig(
-            format="[%(levelname)s]\t%(asctime)s - %(message)s", level=max(4 - level, 0) * 10
+            format='[%(levelname)s]\t%(asctime)s - %(message)s', level=max(4 - level, 0) * 10
         )
 
+    def _build_parser(self, description):
+        parser = argparse.ArgumentParser(
+            description=description,
+            formatter_class=argparse.RawTextHelpFormatter
+        )
+        parser.add_argument('-v', '--verbose', dest='verbose_count',
+                            action='count', default=0,
+                            help='increases log verbosity for each occurence.')
+        return parser
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     PaintingClassifier()

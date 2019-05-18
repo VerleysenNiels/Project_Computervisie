@@ -52,10 +52,9 @@ class IoU():
                 img = io_utils.imread(path)
                 corners_pred, img = feature_detection.detect_perspective(
                     img, self.hparams)
-
-                if logging.root.level == logging.DEBUG:
+                if logging.root.level <= logging.INFO:
                     img = viz_utils.overlay_polygon(
-                        img, corners_exp, color=(0, 255, 255))
+                        img, corners_exp, color=(0, 0, 255))
                     img = viz_utils.overlay_polygon(
                         img, corners_pred)
                     viz_utils.imshow(img)
@@ -64,6 +63,7 @@ class IoU():
                 logging.info('%s: %.2f%%', line[0], 100 * iou)
                 if log_file_path:
                     output_log_file.write('%s;%.4f\n' % (line[0], iou))
+                    output_log_file.flush()
                 sum_iou += iou
                 amount += 1
 

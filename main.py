@@ -91,7 +91,7 @@ class PaintingClassifier(object):
         Description: 
             Evaluate the classifier on prelabeled data
         Example:
-            python main.py eval .\images\zalen\ .\csv_corners\all.csv -o .\csv_detection_perf\perf_all.csv -v
+            python main.py eval .\images\zalen\ .\csv_corners\all.csv -o .\csv_detection_perf\perf_all.csv -v -v
         '''
         parser = self._build_parser(description)
         parser.add_argument(
@@ -222,7 +222,7 @@ class PaintingClassifier(object):
                         window = self.hparams['rolling_avg_window']
                         labels = labels[-window:]
                     next_hall = math_utils.rolling_avg(labels)
-                    if hall is None or hall == next_hall:
+                    if not hall or hall == next_hall:
                         hall = next_hall
                         stuck = 0
                     elif room_graph.transition_possible(hall, next_hall):
@@ -248,8 +248,8 @@ class PaintingClassifier(object):
             h, w = frame.shape[:2]
             try:
                 h1, w1 = painting.shape[:2]
-                blank_image = np.zeros((h, int(0.5 * w), 3), np.uint8)
-                blank_image[0:h1, 0:w1] = painting
+                blank_image = np.zeros_like((h, h, 3), np.uint8)
+                blank_image[0:h1, 0:h1] = painting
             except AttributeError:
                 logging.info('Not an image')
             frame = np.concatenate((frame, blank_image), axis=1)
@@ -273,7 +273,7 @@ class PaintingClassifier(object):
 
         cv2.destroyAllWindows()
         if measurementMode:
-            print('Accuracy: ' + str(frames_correct / frames))
+            logging.info('Accuracy: ' + str(frames_correct / frames))
 
     def _build_logger(self, level):
         logging.basicConfig(

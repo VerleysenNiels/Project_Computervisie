@@ -9,6 +9,44 @@ import logging
 from skimage import feature
 
 
+def create_dog(dim, angle=0):
+    center = (int(dim / 2), int(dim / 2))
+    # Create 1D Gaussian kernel
+    kernel = cv2.getGaussianKernel(dim, dim / 3)  # sigma relative to dim
+    # Copy it to the middle of a square matrix
+    kernel = np.pad(kernel, ((0, 0), center),
+                    'constant', constant_values=(0, 0))
+    # Create 1D row Gaussian kernel
+    kernel2 = np.transpose(cv2.getGaussianKernel(dim, dim / 25))
+    # Filter square with row kernel
+    kernel = cv2.filter2D(kernel, -1, kernel2)
+    # Derive kernel with Sobel
+    kernel = cv2.Sobel(kernel, cv2.CV_64F, 1, 0)
+    # Obtain rotation matrix
+    rot_mat = cv2.getRotationMatrix2D(center, angle, 1)
+    # Rotate kernel with matrix
+    kernel = cv2.warpAffine(kernel, rot_mat, (dim, dim))
+    return kernel
+
+
+def filter_dog(img, hparams):
+    kernel1 = create_dog(hparams['dog_dimension'], 0)
+    kernel2 = create_dog(hparams['dog_dimension'], 90)
+    bw = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    out = np.abs(cv2.filter2D(bw, cv2.CV_32F, kernel1))
+    out += np.abs(cv2.filter2D(bw, cv2.CV_32F, kernel2))
+    if logging.root.level <= logging.DEBUG:
+        viz_utils.imshow(out, norm=True)
+    _, out = cv2.threshold(
+        out, hparams['dog_threshold'], 255, cv2.THRESH_BINARY)
+    if hparams['dog_erode']:
+        out = cv2.erode(
+            out,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (hparams['dog_erode'], hparams['dog_erode'])))
+
+    return out.astype('uint8')
+
+
 def detect_lines(img, hparams):
     """ Detect lines using HoughLinesP
     """
@@ -19,10 +57,13 @@ def detect_lines(img, hparams):
             iterations=2)
 
     # contours = local_binary_pattern(img)
-    canny = cv2.Canny(
-        img,
-        2 * hparams['canny_threshold'] // 3,
-        hparams['canny_threshold'])
+    if hparams['edge_detection'] == 'dog':
+        canny = filter_dog(img, hparams)
+    else:
+        canny = cv2.Canny(
+            img,
+            2 * hparams['canny_threshold'] // 3,
+            hparams['canny_threshold'])
 
     if logging.root.level == logging.DEBUG:
         viz_utils.imshow(canny, norm=True)
@@ -33,7 +74,8 @@ def detect_lines(img, hparams):
             canny, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 1)))
 
     lines = cv2.HoughLinesP(
-        canny, 1, (np.pi / 180),
+        canny, hparams['hough_resolution_rho'], hparams['hough_resolution_theta'] * (
+            np.pi / 180),
         hparams['hough_threshold'],
         minLineLength=hparams['min_line_length'],
         maxLineGap=hparams['max_line_gap']
@@ -98,7 +140,7 @@ def detect_perspective(img, hparams):
         blurred,
         hparams)  # Detect all lines
 
-    if logging.root.level == logging.DEBUG:
+    if logging.root.level <= logging.INFO:
         img = viz_utils.overlay_lines_cartesian(img, all_lines)
 
     # all_corners = detect_corners(img)
@@ -107,7 +149,7 @@ def detect_perspective(img, hparams):
     # lines = math_utils.bounding_rect_2(all_lines, estimate)
 
     if len(lines) < 4:
-        return [], img
+        return np.int32([]), img
 
     points = np.int32(
         [
@@ -118,7 +160,7 @@ def detect_perspective(img, hparams):
         ]
     )  # Calculate intersection points
 
-    if logging.root.level == logging.DEBUG:
+    if logging.root.level <= logging.INFO:
         img = viz_utils.overlay_polygon(img, points, color=(255, 0, 0))
 
     return points, img

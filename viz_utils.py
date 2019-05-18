@@ -44,20 +44,27 @@ roomsAndCoords = {
 }
 
 
-def imshow(img, name='Image', norm=False, resize=False):
+def imshow(img, name='Image', norm=False, resize=True):
     """Display an image
     """
     if resize:
         img = cv2.resize(
             img, (0, 0),
-            fx=720 / img.shape[0],
-            fy=720 / img.shape[0],
+            fx=640 / img.shape[0],
+            fy=640 / img.shape[0],
             interpolation=cv2.INTER_NEAREST)
     if norm:
         img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
     cv2.imshow(name, img.astype('uint8'))
     cv2.waitKey()
     # cv2.destroyAllWindows()
+
+
+def overlay_polygon(img, points, color=(255, 0, 0)):
+    out = np.copy(img)
+    pts = points.reshape((-1, 1, 2))
+    out = cv2.polylines(out, [pts], True, color, 2)
+    return out
 
 
 def overlay_lines(img, lines):

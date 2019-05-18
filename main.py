@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import math
 import os
@@ -13,13 +14,12 @@ import feature_detection
 import io_utils
 import math_utils
 import perspective
-import viz_utils
 import room_graph
-
-from video_ground_truth import VideoGroundTruth
+import viz_utils
 from classifiers import RandomForestClassifier
+from accuracy import IoU
 from feature_extraction import FeatureExtraction
-from detection_performance import IoU
+from video_ground_truth import VideoGroundTruth
 
 
 class PaintingClassifier(object):
@@ -30,6 +30,7 @@ class PaintingClassifier(object):
         parent directory is the hall where the painting is located. 
         '''
         self.check_versions()
+        self.hparams = json.load(open('hparams.json'))
         parser = argparse.ArgumentParser(
             description=description,
             formatter_class=argparse.RawTextHelpFormatter)
@@ -64,10 +65,16 @@ class PaintingClassifier(object):
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
 
+        for file in ['descriptors.pickle', 'histograms.pickle']:
+            if os.path.isfile(file):
+                logging.info('Removing old %s', file)
+                os.remove(file)
+
         for path, img in io_utils.imread_folder(args.directory):
             # img = feature_detection.equalize_histogram(img)
             # img = feature_detection.dilate(img)
-            points, img = feature_detection.detect_perspective(img)
+            points, img = feature_detection.detect_perspective(
+                img, self.hparams['image'])
             if logging.root.level == logging.DEBUG:
                 viz_utils.imshow(img, resize=True)
             img = perspective.perspective_transform(img, points)
@@ -99,7 +106,7 @@ class PaintingClassifier(object):
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
 
-        iou = IoU(args.image_dir)
+        iou = IoU(args.image_dir, self.hparams['image'])
         avg_iou = iou.compute_all(args.ground_truth, args.output)
 
     def infer(self):
@@ -163,14 +170,14 @@ class PaintingClassifier(object):
 
         painting = np.zeros((10, 10, 3), np.uint8)
 
-        grondplan = cv2.imread('.\msk_grondplan.jpg')
+        floor_plan = cv2.imread('.\msk_grondplan.jpg')
         blank_image = None
         hall = None  # Keep track of current room
         # Counter to detect being stuck in a room (bug when using graph)
         stuck = 0
         modes = ['ERROR_MODE', 'WARNING_MODE', 'INFO_MODE', 'DEBUG_MODE']
 
-        for frame in io_utils.read_video(args.file.name, interval=5):
+        for frame in io_utils.read_video(args.file.name, interval=self.hparams['frame_sampling']):
             frame = cv2.resize(
                 frame, (0, 0),
                 fx=720 / frame.shape[0],
@@ -182,9 +189,9 @@ class PaintingClassifier(object):
             blurry = cv2.Laplacian(frame, cv2.CV_64F).var()
 
             # Change this border for blurry
-            if blurry > 65:
+            if blurry < self.hparams['blurry_threshold']:
                 points, frame = feature_detection.detect_perspective(
-                    frame, remove_hblur=True, minLineLength=70, maxLineGap=5)
+                    frame, self.hparams['video'])
 
                 if len(points) == 4:
 
@@ -197,12 +204,13 @@ class PaintingClassifier(object):
                     descriptor = extr.extract_keypoints(img)
                     histogram_frame = extr.extract_hist(img)
                     for path in descriptors:
-                        if descriptors[path] is not None:
+                        if descriptors[path] is not None and histograms[path] is not None:
                             score_key = extr.match_keypoints(
                                 descriptor, descriptors[path])
                             score_hist = extr.compare_hist(
                                 histogram_frame, histograms[path])
-                            score = 0.5*score_key + 0.5*score_hist
+                            score = self.hparams['keypoints_weight'] * score_key + \
+                                self.hparams['histogram_weight'] * score_hist
                             if score < best_score:
                                 best = path
                                 best_score = score
@@ -211,31 +219,30 @@ class PaintingClassifier(object):
                         if best != current:
                             painting = cv2.imread(best)
                         labels.append(best)
-                        labels = labels[-10:]
+                        window = self.hparams['rolling_avg_window']
+                        labels = labels[-window:]
                     next_hall = math_utils.rolling_avg(labels)
                     if hall is None or hall == next_hall:
                         hall = next_hall
                         stuck = 0
                     elif room_graph.transition_possible(hall, next_hall):
                         viz_utils.draw_path_line(
-                            grondplan, str(next_hall), str(hall))
+                            floor_plan, str(next_hall), str(hall))
                         hall = next_hall
                         stuck = 0
                     else:
                         stuck += 1
 
-                    # ToDo: Needs finetuning
                     # Alllow transition if algorithm is stuck in a room
-                    if stuck > 30:
+                    if stuck > self.hparams['stuck_threshold']:
                         hall = next_hall
                         stuck = 0
 
-            # Write amount of blurriness
-
-                frame = cv2.putText(frame, 'Not blurry: ' + str(round(blurry)), (20, 40), cv2.FONT_HERSHEY_PLAIN,
+                # Write amount of blurriness
+                frame = cv2.putText(frame, 'Not blurry: %.0f' % blurry, (20, 40), cv2.FONT_HERSHEY_PLAIN,
                                     1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             else:
-                frame = cv2.putText(frame, 'Too blurry: ' + str(round(blurry)), (20, 40),
+                frame = cv2.putText(frame, 'Too blurry: %.0f' % blurry, (20, 40),
                                     cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
 
             h, w = frame.shape[:2]
@@ -253,7 +260,8 @@ class PaintingClassifier(object):
             frame = cv2.putText(frame, modes[args.verbose_count], (20, 20), cv2.FONT_HERSHEY_PLAIN,
                                 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
-            cv2.imshow('Grondplan', grondplan)
+            cv2.namedWindow('Floor Plan', cv2.WINDOW_NORMAL)
+            cv2.imshow('Floor Plan', floor_plan)
 
             if measurementMode:
                 frames += 1
@@ -265,7 +273,7 @@ class PaintingClassifier(object):
 
         cv2.destroyAllWindows()
         if measurementMode:
-            print('Accuracy: ' + str(frames_correct/frames))
+            print('Accuracy: ' + str(frames_correct / frames))
 
     def _build_logger(self, level):
         logging.basicConfig(

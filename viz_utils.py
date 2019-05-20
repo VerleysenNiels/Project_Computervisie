@@ -128,5 +128,5 @@ def process_gopro_video(frame, board_w, board_h):
     #              -2.7014001885212116e-05, -3.1925229062179259e-04,
     #
 
-    im_rect = cv2.undistort(frame, C, D, None)
+    im_rect = cv2.undistort(frame, C, D, None, C)
     return im_rect

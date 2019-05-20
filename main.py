@@ -178,6 +178,7 @@ class PaintingClassifier(object):
         modes = ['ERROR_MODE', 'WARNING_MODE', 'INFO_MODE', 'DEBUG_MODE']
 
         for frame in io_utils.read_video(args.file.name, interval=self.hparams['frame_sampling']):
+            #frame = viz_utils.process_gopro_video(frame, 6, 10)
             frame = cv2.resize(
                 frame, (0, 0),
                 fx=720 / frame.shape[0],

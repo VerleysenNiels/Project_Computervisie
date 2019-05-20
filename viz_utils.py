@@ -56,7 +56,6 @@ def imshow(img, name='Image', norm=False, resize=True):
     if norm:
         img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
     cv2.imshow(name, img.astype('uint8'))
-    cv2.waitKey()
     # cv2.destroyAllWindows()
 
 
@@ -107,3 +106,27 @@ def overlay_points(img, points):
 def draw_path_line(img, room, nextroom):
     cv2.line(img, roomsAndCoords[room],
              roomsAndCoords[nextroom], (255, 0, 0), 2)
+
+
+def process_gopro_video(frame, board_w, board_h):
+    dims = (board_w, board_h)
+    objp = np.zeros((dims[0]*dims[1],3), np.float32)
+    objp[:,:2] = np.mgrid[0:dims[0], 0:dims[1]].T.reshape(-1, 2)
+
+    #Calib_M
+    C = np.array([[7.2337882890945207e+02, 0., 6.4226033453805235e+02], [0.,
+          7.2844995950341502e+02, 3.2297129949442024e+02], [0., 0., 1.]])
+    D = np.array([-2.7971075073202351e-01, 1.2737835217024596e-01,
+          5.5264049900636148e-04, -2.4709811526299534e-04,
+          -3.7787805887358195e-02])
+
+    #Calib_W
+    #C = np.array([[5.6729034524746328e+02, 0., 6.3764777940570559e+02], [0.,
+    #                                                                     5.7207768469558505e+02,
+    #                                                                     3.3299427011674493e+02], [0., 0., 1.]])
+    #D = np.array([-2.4637408439446815e-01, 7.6662428015464898e-02,
+    #              -2.7014001885212116e-05, -3.1925229062179259e-04,
+    #
+
+    im_rect = cv2.undistort(frame, C, D, None)
+    return im_rect

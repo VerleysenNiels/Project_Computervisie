@@ -4,7 +4,6 @@ import os
 
 import cv2
 import numpy as np
-from shapely.geometry import Polygon
 
 import feature_detection
 import io_utils
@@ -60,7 +59,7 @@ class IoU():
                         img, corners_pred)
                     viz_utils.imshow(img)
 
-                iou = self.compute_2(corners_pred, corners_exp)
+                iou = self.compute(corners_pred, corners_exp)
                 logging.info('%s: %.2f%%', line[0], 100 * iou)
                 if log_file_path:
                     output_log_file.write('%s;%.4f\n' % (line[0], iou))
@@ -83,20 +82,4 @@ class IoU():
             union = label_util.calculate_union(corners_exp, corners_pred)
             if union != 0:
                 return min(inters / union, 1.00)
-        return 0.00
-
-    def compute_2(self, corners_pred, corners_exp):
-        '''Compute the IoU given an array of predicted corners and an array
-           of expected corners (ground truth).
-           This function uses the shapely package
-        '''
-        if len(corners_pred) == 4:
-            a = Polygon(corners_pred)
-            b = Polygon(corners_exp)
-            intersections = a.intersection(b)
-            union = a.union(b)
-            union_area = a.union(b).area
-            if union_area != 0:
-                return intersections.area / union_area
-
         return 0.00

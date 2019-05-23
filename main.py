@@ -14,7 +14,7 @@ import feature_detection
 import io_utils
 import math_utils
 import perspective
-import room_graph
+from room_graph import RoomGraph
 import viz_utils
 from classifiers import RandomForestClassifier
 from accuracy import IoU
@@ -127,6 +127,9 @@ class PaintingClassifier(object):
         parser.add_argument(
             '-m', '--measure', dest='ground_truth',
             help='Passes a file with the ground truth for the video to measure the accuracy')
+        parser.add_argument(
+            '-r', '--rooms', dest='room_file', default='./csv_rooms/MSK.csv',
+            help='Passes a file with the rooms of the museum and how they are connected')
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
 
@@ -169,6 +172,8 @@ class PaintingClassifier(object):
         labels = []
 
         painting = np.zeros((10, 10, 3), np.uint8)
+
+        room_graph = RoomGraph(args.room_file)
 
         floor_plan = cv2.imread('.\msk_grondplan.jpg')
         blank_image = None

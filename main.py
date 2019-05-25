@@ -130,11 +130,20 @@ class PaintingClassifier(object):
         parser.add_argument(
             '-r', '--rooms', dest='room_file', default='./csv_rooms/MSK.csv',
             help='Passes a file with the rooms of the museum and how they are connected')
+        parser.add_argument(
+            '--gopro', dest='gopro_mode', action='count', default=0,
+            help="If passed as an argument, then the infer function will treat the video file as a gopro video"
+        )
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
 
         measurementMode = args.ground_truth is not None and os.path.isfile(
             args.ground_truth)
+
+        goproMode = False;
+        if args.gopro_mode > 0: goproMode = True
+
+        logging.info(goproMode)
 
         extr = FeatureExtraction()
         if os.path.isfile('descriptors.pickle'):
@@ -174,8 +183,8 @@ class PaintingClassifier(object):
         painting = np.zeros((10, 10, 3), np.uint8)
 
         room_graph = RoomGraph(args.room_file)
-
-        floor_plan = cv2.imread('.\msk_grondplan.jpg')
+        viz_utils.read_roomCoords('./csv_room_coordinates/rooms.csv')
+        floor_plan = cv2.imread('./csv_room_coordinates/Groundplan.PNG')
         blank_image = None
         hall = None  # Keep track of current room
         # Counter to detect being stuck in a room (bug when using graph)
@@ -183,7 +192,8 @@ class PaintingClassifier(object):
         modes = ['ERROR_MODE', 'WARNING_MODE', 'INFO_MODE', 'DEBUG_MODE']
 
         for frame in io_utils.read_video(args.file.name, interval=self.hparams['frame_sampling']):
-            #frame = viz_utils.process_gopro_video(frame, 6, 10)
+            if goproMode:
+                frame = viz_utils.process_gopro_video(frame, 6, 10)
             frame = cv2.resize(
                 frame, (0, 0),
                 fx=720 / frame.shape[0],

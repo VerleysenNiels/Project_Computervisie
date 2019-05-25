@@ -1,47 +1,9 @@
 import cv2
 import numpy as np
 import math_utils
+import csv
 
-roomsAndCoords = {
-    'zaal_a': (421, 508),
-    'zaal_b': (326, 508),
-    "zaal_c": (240, 508),
-    "zaal_d": (253, 426),
-    "zaal_e": (394, 426),
-    "zaal_f": (423, 342),
-    "zaal_g": (324, 344),
-    "zaal_h": (239, 344),
-    "zaal_i": (263, 279),
-    "zaal_j": (378, 215),
-    "zaal_k": (419, 158),
-    "zaal_l": (477, 126),
-    "zaal_m": (238, 237),
-    "zaal_n": (131, 275),
-    "zaal_o": (32, 275),
-    "zaal_p": (229, 126),
-    "zaal_q": (314, 121),
-    "zaal_r": (240, 41),
-    "zaal_s": (395, 46),
-    "zaal_1": (643, 509),
-    "zaal_2": (741, 509),
-    "zaal_3": (826, 510),
-    "zaal_4": (810, 427),
-    "zaal_5": (669, 425),
-    "zaal_6": (644, 347),
-    "zaal_7": (740, 345),
-    "zaal_8": (828, 345),
-    "zaal_9": (699, 280),
-    "zaal_10": (684, 216),
-    "zaal_11": (639, 164),
-    "zaal_12": (583, 128),
-    "zaal_13": (827, 237),
-    "zaal_14": (933, 276),
-    "zaal_15": (1034, 278),
-    "zaal_16": (835, 127),
-    "zaal_17": (753, 118),
-    "zaal_18": (827, 40),
-    "zaal_19": (674, 46)
-}
+roomsAndCoords = {}
 
 
 def imshow(img, name='Image', norm=False, resize=True):
@@ -96,6 +58,15 @@ def overlay_points(img, points):
                          )
     return out
 
+def read_roomCoords(file):
+    with open(file) as csv_coords:
+        csv_reader = csv.reader(csv_coords, delimiter=';')
+        line_count = 0
+        for row in csv_reader:
+            if line_count > 0:
+                print(row[0])
+                roomsAndCoords[row[0]] = (int(row[1]), int(row[2]))
+            line_count += 1
 
 def draw_path_line(img, room, nextroom):
     cv2.line(img, roomsAndCoords[room],

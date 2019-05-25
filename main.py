@@ -254,7 +254,7 @@ class PaintingClassifier(object):
             h, w = frame.shape[:2]
             try:
                 h1, w1 = painting.shape[:2]
-                blank_image = np.zeros_like((h, h, 3), np.uint8)
+                blank_image = np.zeros((h, h, 3), np.uint8)
                 blank_image[0:h1, 0:h1] = painting
             except AttributeError:
                 logging.info('Not an image')

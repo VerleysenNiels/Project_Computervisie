@@ -1,7 +1,7 @@
 import argparse
 import json
 import logging
-import math
+import math as pymath
 import os
 import pickle
 import platform
@@ -10,16 +10,16 @@ import sys
 import cv2
 import numpy as np
 
-import feature_detection
-import io_utils
-import math_utils
-import perspective
-from room_graph import RoomGraph
-import viz_utils
-from classifiers import RandomForestClassifier
-from accuracy import IoU
-from feature_extraction import FeatureExtraction
-from video_ground_truth import VideoGroundTruth
+import src.feature_detection as feature_detection
+import src.io as io
+import src.math as math
+import src.perspective as perspective
+from src.room_graph import RoomGraph
+import src.viz as viz
+from src.classifiers import RandomForestClassifier
+from src.accuracy import IoU
+from src.feature_extraction import FeatureExtraction
+from src.video_ground_truth import VideoGroundTruth
 
 
 class PaintingClassifier(object):
@@ -30,7 +30,6 @@ class PaintingClassifier(object):
         parent directory is the hall where the painting is located. 
         '''
         self.check_versions()
-        self.hparams = json.load(open('hparams.json'))
         parser = argparse.ArgumentParser(
             description=description,
             formatter_class=argparse.RawTextHelpFormatter)
@@ -57,34 +56,34 @@ class PaintingClassifier(object):
         Description:
             Build painting database from raw images directory.
         Example:
-            python main.py build .\images\zalen\ -v
+            python main.py build .\images\zalen\ -v -v
         '''
         parser = self._build_parser(description)
         parser.add_argument('directory')
-
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
+        self.hparams = json.load(open(args.config))
 
         for file in ['descriptors.pickle', 'histograms.pickle']:
             if os.path.isfile(file):
                 logging.info('Removing old %s', file)
                 os.remove(file)
 
-        for path, img in io_utils.imread_folder(args.directory):
+        for path, img in io.imread_folder(args.directory):
             # img = feature_detection.equalize_histogram(img)
             # img = feature_detection.dilate(img)
-            points, img = feature_detection.detect_perspective(
+            points, img_out = feature_detection.detect_perspective(
                 img, self.hparams['image'])
             if logging.root.level == logging.DEBUG:
-                viz_utils.imshow(img, resize=True)
+                viz.imshow(img_out, resize=True)
             img = perspective.perspective_transform(img, points)
 
             # Write to DB folder
             label = os.path.basename(os.path.dirname(path))
             out_path = os.path.join(
-                'db', label.lower(), os.path.basename(path))
+                './db/images', label.lower(), os.path.basename(path))
             logging.info('Writing to ' + out_path)
-            io_utils.imwrite(out_path, img)
+            io.imwrite(out_path, img)
 
     def eval(self):
         description = R'''
@@ -101,13 +100,21 @@ class PaintingClassifier(object):
             'ground_truth',
             help='Path to csv with corner labels')
         parser.add_argument(
-            '-o', '--output',
-            help='Path to output log file')
+            '-o', '--output_dir',
+            default='results/latest',
+            help='Path to output directory')
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
+        self.hparams = json.load(open(args.config))
 
+        if not os.path.exists(args.output_dir):
+            os.makedirs(args.output_dir)
+
+        shutil.copy2(args.config, os.path.join(
+            args.output_dir, 'hparams.json'))
         iou = IoU(args.image_dir, self.hparams['image'])
-        avg_iou = iou.compute_all(args.ground_truth, args.output)
+        avg_iou = iou.compute_all(args.ground_truth, os.path.join(
+            args.output_dir, 'accuracy.csv'))
 
     def infer(self):
         description = R'''
@@ -128,37 +135,41 @@ class PaintingClassifier(object):
             '-m', '--measure', dest='ground_truth',
             help='Passes a file with the ground truth for the video to measure the accuracy')
         parser.add_argument(
-            '-r', '--rooms', dest='room_file', default='./csv_rooms/MSK.csv',
+            '-r', '--rooms', dest='room_file', default='./ground_truth/floor_plan/msk.csv',
             help='Passes a file with the rooms of the museum and how they are connected')
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
+        self.hparams = json.load(open(args.config))
 
         measurementMode = args.ground_truth is not None and os.path.isfile(
             args.ground_truth)
 
         extr = FeatureExtraction()
-        if os.path.isfile('descriptors.pickle'):
+        if os.path.isfile('./db/features/descriptors.pickle'):
             logging.info('Reading descriptors from descriptors.pickle...')
-            with open('descriptors.pickle', 'rb') as file:
+            with open('./db/features/descriptors.pickle', 'rb') as file:
                 descriptors = pickle.load(file)
-            with open('histograms.pickle', 'rb') as file:
+            with open('./db/features/histograms.pickle', 'rb') as file:
                 histograms = pickle.load(file)
 
         else:
+            if not os.path.exists('./db/features'):
+                os.makedirs('./db/features')
             logging.info('Computing descriptors from db...')
             descriptors = dict()
             histograms = dict()
-            for path, img in io_utils.imread_folder('./db', resize=False):
+            for path, img in io.imread_folder('./db/images', resize=False):
                 if img.shape == (512, 512, 3):
-                    descriptors[path] = extr.extract_keypoints(img)
+                    descriptors[path] = extr.extract_keypoints(
+                        img, self.hparams['image'])
                     histograms[path] = extr.extract_hist(img)
 
             logging.info('Writing descriptors to descriptors.pickle...')
-            with open('descriptors.pickle', 'wb+') as file:
+            with open('./db/features/descriptors.pickle', 'wb+') as file:
                 pickle.dump(descriptors, file,  protocol=-1)
 
             logging.info('Writing histograms to histograms.pickle...')
-            with open('histograms.pickle', 'wb+') as file:
+            with open('./db/features/histograms.pickle', 'wb+') as file:
                 pickle.dump(histograms, file, protocol=-1)
 
         groundTruth = None
@@ -175,15 +186,15 @@ class PaintingClassifier(object):
 
         room_graph = RoomGraph(args.room_file)
 
-        floor_plan = cv2.imread('.\msk_grondplan.jpg')
+        floor_plan = cv2.imread('./ground_truth/floor_plan/msk.jpg')
         blank_image = None
         hall = None  # Keep track of current room
         # Counter to detect being stuck in a room (bug when using graph)
         stuck = 0
         modes = ['ERROR_MODE', 'WARNING_MODE', 'INFO_MODE', 'DEBUG_MODE']
 
-        for frame in io_utils.read_video(args.file.name, interval=self.hparams['frame_sampling']):
-            #frame = viz_utils.process_gopro_video(frame, 6, 10)
+        for frame in io.read_video(args.file.name, interval=self.hparams['frame_sampling']):
+            #frame = viz.process_gopro_video(frame, 6, 10)
             frame = cv2.resize(
                 frame, (0, 0),
                 fx=720 / frame.shape[0],
@@ -200,24 +211,25 @@ class PaintingClassifier(object):
                     frame, self.hparams['video'])
 
                 if len(points) == 4:
-
-                    best_score = math.inf
+                    best_score = -pymath.inf
                     best = '?'
                     current = best
                     points = perspective.order_points(points)
                     img = perspective.perspective_transform(frame, points)
 
-                    descriptor = extr.extract_keypoints(img)
+                    descriptor = extr.extract_keypoints(
+                        img, self.hparams['video'])
                     histogram_frame = extr.extract_hist(img)
                     for path in descriptors:
                         if descriptors[path] is not None and histograms[path] is not None:
                             score_key = extr.match_keypoints(
-                                descriptor, descriptors[path])
+                                descriptor, descriptors[path], self.hparams)
                             score_hist = extr.compare_hist(
                                 histogram_frame, histograms[path])
                             score = self.hparams['keypoints_weight'] * score_key + \
-                                self.hparams['histogram_weight'] * score_hist
-                            if score < best_score:
+                                self.hparams['histogram_weight'] * \
+                                score_hist
+                            if score > best_score:
                                 best = path
                                 best_score = score
                     logging.info(best)
@@ -227,12 +239,12 @@ class PaintingClassifier(object):
                         labels.append(best)
                         window = self.hparams['rolling_avg_window']
                         labels = labels[-window:]
-                    next_hall = math_utils.rolling_avg(labels)
+                    next_hall = math.rolling_avg(labels)
                     if not hall or hall == next_hall:
                         hall = next_hall
                         stuck = 0
                     elif room_graph.transition_possible(hall, next_hall):
-                        viz_utils.draw_path_line(
+                        viz.draw_path_line(
                             floor_plan, str(next_hall), str(hall))
                         hall = next_hall
                         stuck = 0
@@ -254,10 +266,12 @@ class PaintingClassifier(object):
             h, w = frame.shape[:2]
             try:
                 h1, w1 = painting.shape[:2]
-                blank_image = np.zeros_like((h, h, 3), np.uint8)
+                blank_image = np.zeros((h, h, 3), np.uint8)
                 blank_image[0:h1, 0:h1] = painting
             except AttributeError:
                 logging.info('Not an image')
+            logging.debug(frame.shape)
+            logging.debug(blank_image.shape)
             frame = np.concatenate((frame, blank_image), axis=1)
 
             # Write predicted room and display image
@@ -294,6 +308,10 @@ class PaintingClassifier(object):
         parser.add_argument('-v', '--verbose', dest='verbose_count',
                             action='count', default=0,
                             help='increases log verbosity for each occurence.')
+        parser.add_argument(
+            '-c', '--config',
+            default='./config/hparams.json',
+            help='Path to hparams file')
         return parser
 
 

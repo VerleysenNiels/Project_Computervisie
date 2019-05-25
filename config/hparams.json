@@ -1,0 +1,39 @@
+{
+  "image": {
+    "pre_median": 5,
+    "remove_hblur": false,
+    "edge_detection": "dog",
+    "dog_dimension": 64,
+    "dog_threshold": 50,
+    "dog_erode": 3,
+    "hough_threshold": 100,
+    "hough_resolution_rho": 1,
+    "hough_resolution_theta": 1,
+    "min_line_length": 10,
+    "max_line_gap": 5,
+    "ratio": 0.35,
+    "orb_features": 300
+  },
+  "video": {
+    "pre_median": 5,
+    "remove_hblur": true,
+    "edge_detection": "canny",
+    "dog_dimension": 64,
+    "dog_threshold": 32,
+    "canny_threshold": 50,
+    "hough_threshold": 128,
+    "hough_resolution_rho": 3,
+    "hough_resolution_theta": 1,
+    "min_line_length": 70,
+    "max_line_gap": 5,
+    "ratio": 0.35,
+    "orb_features": 300
+  },
+  "frame_sampling": 5,
+  "blurry_threshold": 100,
+  "histogram_weight": 0.8,
+  "keypoints_weight": 100,
+  "n_best_keypoint_matches": 20,
+  "rolling_avg_window": 20,
+  "stuck_threshold": 30
+}

@@ -62,18 +62,7 @@ def imshow(img, name='Image', norm=False, resize=True):
 def overlay_polygon(img, points, color=(255, 0, 0)):
     out = np.copy(img)
     pts = points.reshape((-1, 1, 2))
-    out = cv2.polylines(out, [pts], True, color, 2)
-    return out
-
-
-def overlay_lines(img, lines):
-    """Overlay lines in polar coordinates on an image
-    """
-    out = np.copy(img)
-    for i in lines:
-        for rho, theta in i:
-            x1, y1, x2, y2 = math_utils.to_carthesian(rho, theta)
-            cv2.line(out, (x1, y1), (x2, y2), (0, 0, 0), 2)
+    out = cv2.polylines(out, [pts], True, color, 2, cv2.LINE_AA)
     return out
 
 
@@ -83,7 +72,12 @@ def overlay_lines_cartesian(img, lines):
     """
     out = np.copy(img)
     for line in lines:
-        cv2.line(out, (line[0], line[1]), (line[2], line[3]), (0, 255, 0), 2)
+        cv2.line(out,
+                 (line[0], line[1]),
+                 (line[2], line[3]),
+                 (0, 255, 0),
+                 1,
+                 cv2.LINE_AA)
     return out
 
 

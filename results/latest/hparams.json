@@ -12,12 +12,12 @@
     "min_line_length": 10,
     "max_line_gap": 5,
     "ratio": 0.35,
-    "orb_features": 500
+    "orb_features": 300
   },
   "video": {
     "pre_median": 5,
     "remove_hblur": true,
-    "edge_detection": "canny",
+    "edge_detection": "dog",
     "dog_dimension": 64,
     "dog_threshold": 50,
     "dog_erode": 3,
@@ -28,13 +28,13 @@
     "min_line_length": 70,
     "max_line_gap": 5,
     "ratio": 0.35,
-    "orb_features": 500
+    "orb_features": 300
   },
-  "frame_sampling": 5,
-  "blurry_threshold": 60,
-  "histogram_weight": 0.7,
+  "frame_sampling": 30,
+  "blurry_threshold": 100,
+  "histogram_weight": 0.8,
   "keypoints_weight": 100,
-  "n_best_keypoint_matches": 10,
+  "n_best_keypoint_matches": 20,
   "rolling_avg_window": 10,
   "stuck_threshold": 30
 }

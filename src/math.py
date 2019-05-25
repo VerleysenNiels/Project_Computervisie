@@ -294,7 +294,7 @@ def angle_betw_lines(line1, line2):
 
 
 def pnt_above_line(pt, ln):
-    # a point (xp, yp) lies above a line if (y1-y2)yp + (x1-x2)xp + (x1y2 - x2y1)> 0
+    """a point (xp, yp) lies above a line if (y1-y2)yp + (x1-x2)xp + (x1y2 - x2y1)> 0"""
     if ((ln[0][1] - ln[1][1]) * pt[1] + (ln[0][0] - ln[1][0]) * pt[0] +
             ((ln[0][0] * ln[1][1]) - (ln[1][0] * ln[0][1]))) > 0:
         print("above")
@@ -304,7 +304,7 @@ def pnt_above_line(pt, ln):
 
 
 def pnt_below_line(pt, ln):
-    # a point (xp, yp) lies above a line if (y1-y2)yp + (x1-x2)xp + (x1y2 - x2y1)> 0
+    """a point (xp, yp) lies above a line if (y1-y2)yp + (x1-x2)xp + (x1y2 - x2y1)> 0"""
     if ((ln[0][1] - ln[1][1]) * pt[1] + (ln[0][0] - ln[1][0]) * pt[0] +
             ((ln[0][0] * ln[1][1]) - (ln[1][0] * ln[0][1]))) < 0:
         print("below")
@@ -365,20 +365,13 @@ def draw_quad(pts, image, col):
     cv2.line(image, tuple(pts[3]), tuple(pts[0]), col)
 
 
-def euclidian_dist(p1, p2):
-    x1 = p1[0]
-    y1 = p1[1]
-    x2 = p2[0]
-    y2 = p2[1]
-    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-
 
 def calculate_area(pts):
     pts = perspective.order_points(pts)
-    a = euclidian_dist(pts[2], pts[3])
-    b = euclidian_dist(pts[3], pts[0])
-    c = euclidian_dist(pts[0], pts[1])
-    d = euclidian_dist(pts[1], pts[2])
+    a = euclid_dist(pts[2], pts[3])
+    b = euclid_dist(pts[3], pts[0])
+    c = euclid_dist(pts[0], pts[1])
+    d = euclid_dist(pts[1], pts[2])
     t = 0.5 * (a + b + c + d)
     angle1 = angle_betw_lines(
         np.array([pts[2], pts[3]]), np.array([pts[3], pts[0]]))
@@ -401,9 +394,9 @@ def get_intersection_pts(pts1, pts2):
         elif point_inside_quad(pts2[0], pts1):
             pts3[0] = pts2[0]
         else:
-            pta = math.intersections(np.array([pts1[0][0], pts1[0][1], pts1[3][0], pts1[3][1]]),
+            pta = intersections(np.array([pts1[0][0], pts1[0][1], pts1[3][0], pts1[3][1]]),
                                            np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
-            ptb = math.intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
+            ptb = intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
                                            np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[0] = ptb
@@ -419,9 +412,9 @@ def get_intersection_pts(pts1, pts2):
         elif point_inside_quad(pts2[1], pts1):
             pts3[1] = pts2[1]
         else:
-            pta = math.intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
+            pta = intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
                                            np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
-            ptb = math.intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
+            ptb = intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
                                            np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[1] = ptb
@@ -437,9 +430,9 @@ def get_intersection_pts(pts1, pts2):
         elif point_inside_quad(pts2[2], pts1):
             pts3[2] = pts2[2]
         else:
-            pta = math.intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
+            pta = intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
                                            np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
-            ptb = math.intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
+            ptb = intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
                                            np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[2] = ptb
@@ -455,9 +448,9 @@ def get_intersection_pts(pts1, pts2):
         elif point_inside_quad(pts2[3], pts1):
             pts3[3] = pts2[3]
         else:
-            pta = math.intersections(np.array([pts1[3][0], pts1[3][1], pts1[0][0], pts1[0][1]]),
+            pta = intersections(np.array([pts1[3][0], pts1[3][1], pts1[0][0], pts1[0][1]]),
                                            np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
-            ptb = math.intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
+            ptb = intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
                                            np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[3] = ptb

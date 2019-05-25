@@ -19,8 +19,7 @@ class RoomGraph:
                 if line_count > 0:
                     self.rooms[row["room"]] = row["neighbours"].split('-')
                 line_count += 1
-            logging.info('Processed ' + str(line_count) +
-                         ' lines from ' + file)
+            logging.info('Processed %d lines from %s', line_count, file)
             logging.debug(self.rooms)
 
     def transition_possible(self, start, goal):

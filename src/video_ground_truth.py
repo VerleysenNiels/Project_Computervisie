@@ -21,7 +21,7 @@ class VideoGroundTruth:
                     self.frames.append(int(row["frames"]))
                     self.rooms.append(row["rooms"])
                 line_count += 1
-            logging.info('Processed {line_count} lines from ' + file)
+            logging.info('Processed %d lines from %s', line_count,  file)
 
     def room_in_frame(self, frame):
         """Returns the room at a given timestep (frame-number)

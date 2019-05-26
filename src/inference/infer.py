@@ -11,16 +11,15 @@ import sys
 import cv2
 import numpy as np
 
-import src.feature_detection as feature_detection
-import src.io as io
-import src.math as math
-import src.perspective as perspective
-import src.viz as viz
-from src.accuracy import IoU
-from src.classifiers import RandomForestClassifier
-from src.feature_extraction import FeatureExtraction
-from src.room_graph import RoomGraph
-from src.video_ground_truth import VideoGroundTruth
+import src.features.feature_detection as feature_detection
+import src.utils.io as io
+import src.utils.math as math
+import src.utils.perspective_transform as perspective
+import src.utils.viz as viz
+from src.evaluation.accuracy import IoU
+from src.features.feature_extraction import FeatureExtraction
+from src.inference.room_graph import RoomGraph
+from src.evaluation.video_ground_truth import VideoGroundTruth
 
 
 def infer(args, hparams, descriptors, histograms):
@@ -68,10 +67,10 @@ def infer(args, hparams, descriptors, histograms):
 
                 points = perspective.order_points(points)
                 img = perspective.perspective_transform(frame, points)
-                descriptor = extr.extract_keypoints(img, hparams['video'])
+                descriptor = extr.extract_keypoints(img, hparams)
                 histogram_frame = extr.extract_hist(img)
 
-                best_score = -pymath.inf
+                best_score = 0
                 best = None
                 for path in descriptors:
                     if descriptors[path] is not None and histograms[path] is not None:

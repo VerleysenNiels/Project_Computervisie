@@ -32,9 +32,14 @@
   },
   "frame_sampling": 5,
   "blurry_threshold": 60,
-  "histogram_weight": 0.7,
-  "keypoints_weight": 100,
+  "histogram_weight": 0,
+  "keypoints_weight": 1,
   "n_best_keypoint_matches": 10,
   "rolling_avg_window": 10,
-  "stuck_threshold": 30
+  "stuck_threshold": 30,
+  "feature_matching": {
+    "type": "SURF",
+    "keypoint_thresh": 400,
+    "matches_amount": 20
+  }
 }

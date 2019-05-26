@@ -5,10 +5,10 @@ import os
 import cv2
 import numpy as np
 
-import src.feature_detection as feature_detection
-import src.io as io
-import src.math as math
-import src.viz as viz
+import src.features.feature_detection as feature_detection
+import src.utils.io as io
+import src.utils.math as math
+import src.utils.viz as viz
 
 
 class IoU():

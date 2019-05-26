@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 from sklearn.metrics import f1_score
 
-import src.perspective as perspective
+import src.utils.perspective_transform as perspective
 
 
 def rolling_avg(paths):

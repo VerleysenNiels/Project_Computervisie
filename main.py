@@ -11,17 +11,16 @@ import sys
 import cv2
 import numpy as np
 
-import src.feature_detection as feature_detection
-import src.io as io
-import src.math as math
-import src.perspective as perspective
-import src.viz as viz
-from src.accuracy import IoU
-from src.classifiers import RandomForestClassifier
-from src.feature_extraction import FeatureExtraction
-from src.room_graph import RoomGraph
-from src.video_ground_truth import VideoGroundTruth
-from src.infer import infer
+import src.features.feature_detection as feature_detection
+import src.utils.io as io
+import src.utils.math as math
+import src.utils.perspective_transform as perspective
+import src.utils.viz as viz
+from src.evaluation.accuracy import IoU
+from src.evaluation.video_ground_truth import VideoGroundTruth
+from src.features.feature_extraction import FeatureExtraction
+from src.inference.infer import infer
+from src.inference.room_graph import RoomGraph
 
 
 class PaintingClassifier(object):
@@ -51,7 +50,7 @@ class PaintingClassifier(object):
     def check_versions(self):
         '''Check python package versions
         '''
-        assert cv2.__version__.startswith('4.')
+        assert cv2.__version__.startswith('3.')
 
     def build(self):
         description = R'''
@@ -160,10 +159,11 @@ class PaintingClassifier(object):
             logging.info('Computing descriptors from db...')
             descriptors = dict()
             histograms = dict()
+            extr = FeatureExtraction()
             for path, img in io.imread_folder('./db/images', resize=False):
                 if img.shape == (512, 512, 3):
                     descriptors[path] = extr.extract_keypoints(
-                        img, self.hparams['image'])
+                        img, self.hparams)
                     histograms[path] = extr.extract_hist(img)
 
             logging.info('Writing descriptors to descriptors.pickle...')

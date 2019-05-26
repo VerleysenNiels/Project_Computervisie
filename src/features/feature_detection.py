@@ -5,10 +5,10 @@ import cv2
 import numpy as np
 from skimage import feature
 
-import src.io as io
-import src.math as math
-import src.viz as viz
-from src.perspective import perspective_transform
+import src.utils.io as io
+import src.utils.math as math
+import src.utils.viz as viz
+from src.utils.perspective_transform import perspective_transform
 
 
 def create_dog(dim, angle=0):

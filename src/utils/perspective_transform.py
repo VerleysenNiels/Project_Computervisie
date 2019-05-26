@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-import src.math as math
-import src.viz as viz
+import src.utils.math as math
+import src.utils.viz as viz
 
 
 def order_points(pts):

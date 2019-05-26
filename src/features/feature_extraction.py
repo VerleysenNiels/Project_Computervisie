@@ -4,9 +4,9 @@ import math as pymath
 import cv2
 import numpy as np
 
-import src.io as io
-import src.math as math
-import src.viz as viz
+import src.utils.io as io
+import src.utils.math as math
+import src.utils.viz as viz
 
 
 class FeatureExtraction(object):
@@ -91,23 +91,34 @@ class FeatureExtraction(object):
         return np.array([red, green, blue])
 
     def extract_keypoints(self, img, hparams):
-        orb = cv2.ORB_create(nfeatures=hparams['orb_features'])
-        keypoints, descriptors = orb.detectAndCompute(img, None)
+        params = hparams['feature_matching']
+        if params['type'] == 'ORB':
+            detector = cv2.ORB_create(nfeatures=hparams['keypoint_thresh'])
+        elif params['type'] == 'SURF':
+            detector = cv2.xfeatures2d_SURF.create(
+                hessianThreshold=params['keypoint_thresh'])
+        keypoints, descriptors = detector.detectAndCompute(img, None)
         return descriptors
 
     def match_keypoints(self, descriptors_im, descriptors_db, hparams):
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        matches = bf.match(descriptors_im, descriptors_db)
-        matches = sorted(matches, key=lambda x: x.distance)
+        params = hparams['feature_matching']
+        if params['type'] == 'ORB':
+            matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        elif params['type'] == 'SURF':
+            # Since SURF is a floating-point descriptor NORM_L2 is used
+            matcher = cv2.DescriptorMatcher_create(
+                cv2.DescriptorMatcher_FLANNBASED)
+        matches = matcher.match(descriptors_im, descriptors_db)
         if len(matches) == 0:
-            return pymath.inf
-
+            return 0
+        matches = sorted(matches, key=lambda x: x.distance)
+        n = params['matches_amount']
+        good_matches = matches[n:]
         score = 0
-        n = hparams['n_best_keypoint_matches']
-        for m in matches[:n]:
+        for m in good_matches:
             score += m.distance
-        # low score indicates good match
-        return min(len(matches), n) / score
+        # high score indicates good match
+        return len(good_matches) / score + .0001
 
     def gabor_filtering(self, img):
         g_kernel = cv2.getGaborKernel(

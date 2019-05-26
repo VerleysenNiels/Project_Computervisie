@@ -4,7 +4,7 @@ import os
 import cv2
 import numpy as np
 
-import src.viz
+import src.utils.viz
 
 
 def imread(path, resize=True, bw=False):

@@ -5,8 +5,8 @@ import cv2
 import numpy as np
 
 import feature_detection
-import io_utils
-import label_util
+import io
+import math
 import perspective
 import os
 
@@ -16,7 +16,7 @@ red = (0, 0, 255)
 
 imname = "zaal_11/IMG_20190323_114030.jpg"
 path = os.path.join("images/zalen/", imname)
-img = io_utils.imread(path)
+img = io.imread(path)
 
 with open("csv_corners/all.csv") as cornerlabels:
     label_reader = csv.reader(cornerlabels, delimiter=";")
@@ -28,11 +28,11 @@ with open("csv_corners/all.csv") as cornerlabels:
     pts_det, _ = feature_detection.detect_perspective(
         img, json.load(open('hparams.json'))['image'])
     if len(pts_det) >= 4 and len(pts_lbl) >= 4:
-        label_util.draw_quad(pts_det, img, blue)
-        label_util.draw_quad(pts_lbl, img, green)
-        pts_int = label_util.get_intersection_pts(pts_lbl, pts_det)
+        math.draw_quad(pts_det, img, blue)
+        math.draw_quad(pts_lbl, img, green)
+        pts_int = math.get_intersection_pts(pts_lbl, pts_det)
         if len(pts_int) >= 4:
-            label_util.draw_quad(pts_int, img, red)
+            math.draw_quad(pts_int, img, red)
         else:
             print(pts_int)
         height, width, depth = img.shape

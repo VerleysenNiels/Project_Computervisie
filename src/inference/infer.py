@@ -39,6 +39,8 @@ def infer(args, hparams, descriptors, histograms):
     painting = np.zeros((10, 10, 3), np.uint8)
     room_graph = RoomGraph(args.room_file)
     floor_plan = cv2.imread('./ground_truth/floor_plan/msk.jpg')
+    room_coords = viz.read_room_coords(
+        './ground_truth/floor_plan/room_coords.csv')
     blank_image = None
     current_room = None  # Keep track of current room
     # Counter to detect being stuck in a room (bug when using graph)
@@ -102,7 +104,7 @@ def infer(args, hparams, descriptors, histograms):
                     stuck = 0
                 elif room_graph.transition_possible(current_room, next_hall):
                     viz.draw_path_line(
-                        floor_plan, str(next_hall), str(current_room))
+                        floor_plan, str(next_hall), str(current_room), room_coords)
                     current_room = next_hall
                     stuck = 0
                 else:

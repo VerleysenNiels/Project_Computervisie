@@ -1,48 +1,7 @@
 import cv2
 import numpy as np
 import logging
-
-roomsAndCoords = {
-    "zaal_a":	(200, 241),
-    "zaal_b":	(155, 241),
-    "zaal_c":	(114, 241),
-    "zaal_d":	(120, 202),
-    "zaal_e":	(187, 202),
-    "zaal_f":	(201, 162),
-    "zaal_g":	(154, 163),
-    "zaal_h":	(113, 163),
-    "zaal_i":	(125, 132),
-    "zaal_j":	(179, 102),
-    "zaal_k":	(199, 75),
-    "zaal_l":	(226, 60),
-    "zaal_m":	(113, 112),
-    "zaal_n":	(62, 130),
-    "zaal_o":	(15, 130),
-    "zaal_p":	(109, 60),
-    "zaal_q":	(149, 57),
-    "zaal_r":	(114, 19),
-    "zaal_s":	(187, 22),
-    "zaal_1":	(305, 241),
-    "zaal_2":	(351, 241),
-    "zaal_3":	(392, 242),
-    "zaal_4":	(384, 203),
-    "zaal_5":	(317, 202),
-    "zaal_6":	(305, 165),
-    "zaal_7":	(351, 164),
-    "zaal_8":	(393, 164),
-    "zaal_9":	(332, 133),
-    "zaal_10":	(324, 102),
-    "zaal_11":	(303, 78),
-    "zaal_12":	(277, 61),
-    "zaal_13":	(392, 112),
-    "zaal_14":	(443, 131),
-    "zaal_15":	(490, 132),
-    "zaal_16":	(396, 60),
-    "zaal_17":	(357, 56),
-    "zaal_18":	(392, 19),
-    "zaal_19":	(320, 22),
-    "zaal_v":	(247, 47)
-}
+import csv
 
 
 def imshow(img, name='Image', norm=False, resize=True):
@@ -98,9 +57,9 @@ def overlay_points(img, points):
     return out
 
 
-def draw_path_line(img, room, nextroom):
-    cv2.line(img, roomsAndCoords[room],
-             roomsAndCoords[nextroom], (255, 0, 0), 2)
+def draw_path_line(img, room, nextroom, room_coords):
+    cv2.line(img, room_coords[room],
+             room_coords[nextroom], (255, 0, 0), 2)
 
 
 def process_gopro_video(frame, board_w, board_h):
@@ -125,3 +84,15 @@ def process_gopro_video(frame, board_w, board_h):
 
     im_rect = cv2.undistort(frame, C, D, None, C)
     return im_rect
+
+
+def read_room_coords(file):
+    room_coords = dict()
+    with open(file) as csv_coords:
+        csv_reader = csv.reader(csv_coords, delimiter=';')
+        line_count = 0
+        for row in csv_reader:
+            if line_count > 0:
+                room_coords[row[0]] = (int(row[1]), int(row[2]))
+            line_count += 1
+    return room_coords

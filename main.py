@@ -139,6 +139,10 @@ class PaintingClassifier(object):
             '-r', '--rooms', dest='room_file', default='./ground_truth/floor_plan/msk.csv',
             help='Passes a file with the rooms of the museum and how they are connected')
         parser.add_argument(
+            '--gopro', dest='gopro_mode', action='count', default=0,
+            help="If passed as an argument, then the infer function will treat the video file as a gopro video"
+        )
+        parser.add_argument(
             '-s', '--silent',
             default=False,
             action='store_true',
@@ -147,6 +151,15 @@ class PaintingClassifier(object):
         self._build_logger(args.verbose_count)
         self.hparams = json.load(open(args.config))
 
+        measurementMode = args.ground_truth is not None and os.path.isfile(
+            args.ground_truth)
+
+        goproMode = False;
+        if args.gopro_mode > 0: goproMode = True
+
+        logging.info(goproMode)
+
+        extr = FeatureExtraction()
         if os.path.isfile('./db/features/descriptors.pickle'):
             logging.info('Reading descriptors from descriptors.pickle...')
             with open('./db/features/descriptors.pickle', 'rb') as file:

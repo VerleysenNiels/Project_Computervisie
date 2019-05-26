@@ -13,24 +13,27 @@ import src.utils.perspective_transform as perspective
 
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
-    if len(x):
+    if len(x) != 0:
         e_x = np.exp(x - np.max(x))
         return np.array(e_x / e_x.sum())
     return x
 
 
 def rolling_avg(labels):
-    rooms_scores = dict()
-    for path, score in labels:
-        room = os.path.basename(os.path.dirname(path))
-        if room in rooms_scores:
-            rooms_scores[room] += score
-        else:
-            rooms_scores[room] = score
-    v = softmax(np.array(list(rooms_scores.values())))
-    k = list(rooms_scores.keys())
-    idx = np.argmax(v)
-    return k[idx], v[idx]
+    if len(labels) != 0:
+        rooms_scores = dict()
+        for path, score in labels:
+            room = os.path.basename(os.path.dirname(path))
+            if room in rooms_scores:
+                rooms_scores[room] += score
+            else:
+                rooms_scores[room] = score
+        v = softmax(np.array(list(rooms_scores.values())))
+        k = list(rooms_scores.keys())
+        idx = np.argmax(v)
+        return k[idx], v[idx]
+    return None, 0
+
 
 
 def mean_difference(points, img):

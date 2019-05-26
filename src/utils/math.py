@@ -11,12 +11,24 @@ from sklearn.metrics import f1_score
 import src.utils.perspective_transform as perspective
 
 
-def rolling_avg(paths):
-    if paths and len(paths) != 0:
-        samples = list(
-            map(lambda x: os.path.basename(os.path.dirname(x)), paths))
-        return max(set(samples), key=samples.count)
-    return ''
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return np.array(e_x / e_x.sum())
+
+
+def rolling_avg(labels):
+    rooms_scores = dict()
+    for path, score in labels:
+        room = os.path.basename(os.path.dirname(path))
+        if room in rooms_scores:
+            rooms_scores[room] += score
+        else:
+            rooms_scores[room] = score
+    v = softmax(np.array(list(rooms_scores.values())))
+    k = list(rooms_scores.keys())
+    idx = np.argmax(v)
+    return k[idx], v[idx]
 
 
 def mean_difference(points, img):
@@ -365,7 +377,6 @@ def draw_quad(pts, image, col):
     cv2.line(image, tuple(pts[3]), tuple(pts[0]), col)
 
 
-
 def calculate_area(pts):
     pts = perspective.order_points(pts)
     a = euclid_dist(pts[2], pts[3])
@@ -395,9 +406,9 @@ def get_intersection_pts(pts1, pts2):
             pts3[0] = pts2[0]
         else:
             pta = intersections(np.array([pts1[0][0], pts1[0][1], pts1[3][0], pts1[3][1]]),
-                                           np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
+                                np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
             ptb = intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
-                                           np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
+                                np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[0] = ptb
             elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
@@ -413,9 +424,9 @@ def get_intersection_pts(pts1, pts2):
             pts3[1] = pts2[1]
         else:
             pta = intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
-                                           np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
+                                np.array([pts2[0][0], pts2[0][1], pts2[1][0], pts2[1][1]]))
             ptb = intersections(np.array([pts1[0][0], pts1[0][1], pts1[1][0], pts1[1][1]]),
-                                           np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
+                                np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[1] = ptb
             elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
@@ -431,9 +442,9 @@ def get_intersection_pts(pts1, pts2):
             pts3[2] = pts2[2]
         else:
             pta = intersections(np.array([pts1[1][0], pts1[1][1], pts1[2][0], pts1[2][1]]),
-                                           np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
+                                np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
             ptb = intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
-                                           np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
+                                np.array([pts2[1][0], pts2[1][1], pts2[2][0], pts2[2][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[2] = ptb
             elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:
@@ -449,9 +460,9 @@ def get_intersection_pts(pts1, pts2):
             pts3[3] = pts2[3]
         else:
             pta = intersections(np.array([pts1[3][0], pts1[3][1], pts1[0][0], pts1[0][1]]),
-                                           np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
+                                np.array([pts2[2][0], pts2[2][1], pts2[3][0], pts2[3][1]]))
             ptb = intersections(np.array([pts1[2][0], pts1[2][1], pts1[3][0], pts1[3][1]]),
-                                           np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
+                                np.array([pts2[0][0], pts2[0][1], pts2[3][0], pts2[3][1]]))
             if pta[0] < 0 or pta[0] > 10000 or pta[1] < 0 or pta[1] > 10000:
                 pts3[3] = ptb
             elif ptb[0] < 0 or ptb[0] > 10000 or ptb[1] < 0 or ptb[1] > 10000:

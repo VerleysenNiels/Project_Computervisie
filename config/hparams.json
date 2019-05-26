@@ -29,8 +29,8 @@
   },
   "frame_sampling": 10,
   "blurry_threshold": 60,
-  "histogram_weight": 0.9,
-  "keypoints_weight": 100,
+  "histogram_weight": 0.1,
+  "keypoints_weight": 0.9,
   "rolling_avg_window": 15,
   "stuck_threshold": 30,
   "feature_matching": {

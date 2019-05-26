@@ -118,7 +118,7 @@ class FeatureExtraction(object):
         for m in good_matches:
             score += m.distance
         # high score indicates good match
-        return len(good_matches) / score + .0001
+        return len(good_matches) / (score + .00001)
 
     def gabor_filtering(self, img):
         g_kernel = cv2.getGaborKernel(

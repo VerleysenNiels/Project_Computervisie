@@ -22,10 +22,42 @@ from src.inference.room_graph import RoomGraph
 from src.evaluation.video_ground_truth import VideoGroundTruth
 
 
+def infer_frame(frame, extraction, descriptors, histograms, hparams):
+    points, frame = feature_detection.detect_perspective(
+        frame, hparams['video'])
+
+    best_score = 0
+    best = None
+    if len(points) == 4:
+        points = perspective.order_points(points)
+        painting = perspective.perspective_transform(frame, points)
+        descriptor = extraction.extract_keypoints(painting, hparams)
+        histogram = extraction.extract_hist(painting)
+
+        for path in descriptors:
+            if descriptors[path] is not None and histograms[path] is not None:
+                score_key = extraction.match_keypoints(
+                    descriptor, descriptors[path], hparams)
+                score_hist = extraction.compare_hist(
+                    histogram, histograms[path])
+                score = hparams['keypoints_weight'] * score_key + \
+                    hparams['histogram_weight'] * \
+                    score_hist
+                if score > best_score:
+                    best = path
+                    best_score = score
+    return best, best_score, frame
+
+
 def infer(args, hparams, descriptors, histograms):
 
     measurementMode = args.ground_truth is not None and os.path.isfile(
         args.ground_truth)
+
+    goproMode = False
+    if args.gopro_mode > 0:
+        goproMode = True
+        logging.info('Enabled gopro mode')
 
     extr = FeatureExtraction()
     groundTruth = None
@@ -62,58 +94,36 @@ def infer(args, hparams, descriptors, histograms):
 
         # Change this border for blurry
         if blurry < hparams['blurry_threshold']:
-            points, frame = feature_detection.detect_perspective(
-                frame, hparams['video'])
+            best, best_score, frame = infer_frame(
+                frame, extr, descriptors, histograms, hparams)
+            logging.info(best)
+            if best:
+                if best != current_room:
+                    painting = cv2.imread(best)
+                    painting = cv2.resize(
+                        painting, (0, 0),
+                        fx=360 / painting.shape[0],
+                        fy=360 / painting.shape[0],
+                        interpolation=cv2.INTER_AREA)
+                labels.append(best)
+                window = hparams['rolling_avg_window']
+                labels = labels[-window:]
+            next_hall = math.rolling_avg(labels)
+            if not current_room or current_room == next_hall:
+                current_room = next_hall
+                stuck = 0
+            elif room_graph.transition_possible(current_room, next_hall):
+                viz.draw_path_line(
+                    floor_plan, str(next_hall), str(current_room))
+                current_room = next_hall
+                stuck = 0
+            else:
+                stuck += 1
 
-            if len(points) == 4:
-
-                points = perspective.order_points(points)
-                img = perspective.perspective_transform(frame, points)
-                descriptor = extr.extract_keypoints(img, hparams)
-                histogram_frame = extr.extract_hist(img)
-
-                best_score = 0
-                best = None
-                for path in descriptors:
-                    if descriptors[path] is not None and histograms[path] is not None:
-                        score_key = extr.match_keypoints(
-                            descriptor, descriptors[path], hparams)
-                        score_hist = extr.compare_hist(
-                            histogram_frame, histograms[path])
-                        score = hparams['keypoints_weight'] * score_key + \
-                            hparams['histogram_weight'] * \
-                            score_hist
-                        if score > best_score:
-                            best = path
-                            best_score = score
-                logging.info(best)
-                if best:
-                    if best != current_room:
-                        painting = cv2.imread(best)
-                        painting = cv2.resize(
-                            painting, (0, 0),
-                            fx=360 / img.shape[0],
-                            fy=360 / img.shape[0],
-                            interpolation=cv2.INTER_AREA)
-                    labels.append(best)
-                    window = hparams['rolling_avg_window']
-                    labels = labels[-window:]
-                next_hall = math.rolling_avg(labels)
-                if not current_room or current_room == next_hall:
-                    current_room = next_hall
-                    stuck = 0
-                elif room_graph.transition_possible(current_room, next_hall):
-                    viz.draw_path_line(
-                        floor_plan, str(next_hall), str(current_room), room_coords)
-                    current_room = next_hall
-                    stuck = 0
-                else:
-                    stuck += 1
-
-                # Alllow transition if algorithm is stuck in a room
-                if stuck > hparams['stuck_threshold']:
-                    current_room = next_hall
-                    stuck = 0
+            # Alllow transition if algorithm is stuck in a room
+            if stuck > hparams['stuck_threshold']:
+                current_room = next_hall
+                stuck = 0
             metadata['Blurriness'] = 'Not blurry (%.0f)' % blurry
         else:
             metadata['Blurriness'] = 'Too blurry (%.0f)' % blurry

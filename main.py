@@ -19,7 +19,7 @@ import src.utils.viz as viz
 from src.evaluation.accuracy import IoU
 from src.evaluation.video_ground_truth import VideoGroundTruth
 from src.features.feature_extraction import FeatureExtraction
-from src.inference.infer import infer
+from src.inference.infer import infer, infer_frame
 from src.inference.room_graph import RoomGraph
 
 
@@ -36,7 +36,7 @@ class PaintingClassifier(object):
             formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument(
             'command',
-            choices=['build', 'eval', 'infer'],
+            choices=['build', 'eval_corners', 'eval_hall', 'infer'],
             help='Subcommand to run. See main.py SUBCOMMAND -h for more info.'
         )
 
@@ -86,12 +86,12 @@ class PaintingClassifier(object):
             logging.info('Writing to ' + out_path)
             io.imwrite(out_path, img)
 
-    def eval(self):
+    def eval_corners(self):
         description = R'''
         Description: 
             Evaluate the classifier on prelabeled data
         Example:
-            python main.py eval .\images\zalen\ .\csv_corners\all.csv -o .\csv_detection_perf\perf_all.csv -v -v
+            python main.py eval_corners .\images\zalen\ .\csv_corners\all.csv -o .\csv_detection_perf\perf_all.csv -v -v
         '''
         parser = self._build_parser(description)
         parser.add_argument(
@@ -116,6 +116,51 @@ class PaintingClassifier(object):
         iou = IoU(args.image_dir, self.hparams['image'])
         avg_iou = iou.compute_all(args.ground_truth, os.path.join(
             args.output_dir, 'accuracy.csv'))
+
+    def eval_hall(self):
+        description = R'''
+        Description: 
+            Evaluate the classifier on prelabeled data
+        Example:
+            python main.py eval_hall .\video-frames -v -v
+        '''
+        parser = self._build_parser(description)
+        parser.add_argument(
+            'ground_truth_dir',
+            help='Path to original images dir')
+        parser.add_argument(
+            '-o', '--output_dir',
+            default='results/latest',
+            help='Path to output directory')
+        args = parser.parse_args(sys.argv[2:])
+        self._build_logger(args.verbose_count)
+        self.hparams = json.load(open(args.config))
+        # Copy hparams to output directory
+        if not os.path.exists(args.output_dir):
+            os.makedirs(args.output_dir)
+        shutil.copy2(args.config, os.path.join(
+            args.output_dir, 'hparams.json'))
+
+        correct = 0
+        total = 0
+        descriptors, histograms = self._get_descriptors_histograms()
+        for path, img in io.imread_folder(args.ground_truth_dir, resize=False):
+            best, best_score, img = infer_frame(
+                img, FeatureExtraction(), descriptors, histograms, self.hparams)
+            if best:
+                predicted = os.path.basename(os.path.dirname(best))
+            else:
+                predicted = 'None'
+            expected = os.path.basename(os.path.dirname(path))
+            logging.debug('Expected:  %s', expected)
+            logging.debug('Predicted: %s', predicted)
+            if expected == predicted:
+                correct += 1
+            total += 1
+            logging.info('%d/%d (%.2f%%) correct', correct,
+                         total, 100 * correct / total)
+            viz.imshow(img, name='Frame')
+            cv2.waitKey(1000)
 
     def infer(self):
         description = R'''
@@ -150,7 +195,29 @@ class PaintingClassifier(object):
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
         self.hparams = json.load(open(args.config))
+        descriptors, histograms = self._get_descriptors_histograms()
+        infer(args, self.hparams, descriptors, histograms)
 
+    def _build_logger(self, level):
+        logging.basicConfig(
+            format='[%(levelname)s]\t%(asctime)s - %(message)s', level=max(4 - level, 0) * 10
+        )
+
+    def _build_parser(self, description):
+        parser = argparse.ArgumentParser(
+            description=description,
+            formatter_class=argparse.RawTextHelpFormatter
+        )
+        parser.add_argument('-v', '--verbose', dest='verbose_count',
+                            action='count', default=0,
+                            help='increases log verbosity for each occurence.')
+        parser.add_argument(
+            '-c', '--config',
+            default='./config/hparams.json',
+            help='Path to hparams file')
+        return parser
+
+<<<<<<< Updated upstream
         measurementMode = args.ground_truth is not None and os.path.isfile(
             args.ground_truth)
 
@@ -160,6 +227,9 @@ class PaintingClassifier(object):
         logging.info(goproMode)
 
         extr = FeatureExtraction()
+=======
+    def _get_descriptors_histograms(self):
+>>>>>>> Stashed changes
         if os.path.isfile('./db/features/descriptors.pickle'):
             logging.info('Reading descriptors from descriptors.pickle...')
             with open('./db/features/descriptors.pickle', 'rb') as file:
@@ -186,27 +256,7 @@ class PaintingClassifier(object):
             logging.info('Writing histograms to histograms.pickle...')
             with open('./db/features/histograms.pickle', 'wb+') as file:
                 pickle.dump(histograms, file, protocol=-1)
-
-        infer(args, self.hparams, descriptors, histograms)
-
-    def _build_logger(self, level):
-        logging.basicConfig(
-            format='[%(levelname)s]\t%(asctime)s - %(message)s', level=max(4 - level, 0) * 10
-        )
-
-    def _build_parser(self, description):
-        parser = argparse.ArgumentParser(
-            description=description,
-            formatter_class=argparse.RawTextHelpFormatter
-        )
-        parser.add_argument('-v', '--verbose', dest='verbose_count',
-                            action='count', default=0,
-                            help='increases log verbosity for each occurence.')
-        parser.add_argument(
-            '-c', '--config',
-            default='./config/hparams.json',
-            help='Path to hparams file')
-        return parser
+        return descriptors, histograms
 
 
 if __name__ == '__main__':

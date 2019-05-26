@@ -13,8 +13,10 @@ import src.utils.perspective_transform as perspective
 
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
-    e_x = np.exp(x - np.max(x))
-    return np.array(e_x / e_x.sum())
+    if len(x):
+        e_x = np.exp(x - np.max(x))
+        return np.array(e_x / e_x.sum())
+    return x
 
 
 def rolling_avg(labels):

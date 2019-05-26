@@ -16,26 +16,27 @@
   "video": {
     "pre_median": 5,
     "remove_hblur": true,
-    "edge_detection": "dog",
+    "edge_detection": "canny",
     "dog_dimension": 64,
-    "dog_threshold": 30,
+    "dog_threshold": 50,
     "dog_erode": 3,
-    "hough_threshold": 100,
-    "hough_resolution_rho": 1,
+    "canny_threshold": 50,
+    "hough_threshold": 128,
+    "hough_resolution_rho": 3,
     "hough_resolution_theta": 1,
-    "min_line_length": 50,
+    "min_line_length": 70,
     "max_line_gap": 5,
     "ratio": 0.35
   },
-  "frame_sampling": 10,
+  "frame_sampling": 5,
   "blurry_threshold": 60,
-  "histogram_weight": 0.9,
-  "keypoints_weight": 100,
-  "rolling_avg_window": 15,
+  "histogram_weight": 0,
+  "keypoints_weight": 1,
+  "rolling_avg_window": 10,
   "stuck_threshold": 30,
   "feature_matching": {
-    "type": "SURF",
-    "keypoint_thresh": 600,
+    "type": "ORB",
+    "keypoint_thresh": 400,
     "matches_amount": 20
   }
 }

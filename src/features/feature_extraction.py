@@ -93,7 +93,7 @@ class FeatureExtraction(object):
     def extract_keypoints(self, img, hparams):
         params = hparams['feature_matching']
         if params['type'] == 'ORB':
-            detector = cv2.ORB_create(nfeatures=hparams['keypoint_thresh'])
+            detector = cv2.ORB_create(nfeatures=params['keypoint_thresh'])
         elif params['type'] == 'SURF':
             detector = cv2.xfeatures2d_SURF.create(
                 hessianThreshold=params['keypoint_thresh'])

@@ -115,7 +115,7 @@ class PaintingClassifier(object):
             args.output_dir, 'hparams.json'))
         iou = IoU(args.image_dir, self.hparams['image'])
         avg_iou = iou.compute_all(args.ground_truth, os.path.join(
-            args.output_dir, 'accuracy.csv'))
+            args.output_dir, 'accuracy-corners.csv'))
 
     def eval_hall(self):
         description = R'''
@@ -144,6 +144,9 @@ class PaintingClassifier(object):
         correct = 0
         total = 0
         descriptors, histograms = self._get_descriptors_histograms()
+        file = open(os.path.join(
+            args.output_dir, 'accuracy-corners.csv'), 'w+')
+        file.write('Path;Expected;Predicted\n')
         for path, img in io.imread_folder(args.ground_truth_dir, resize=False):
             best, best_score, img = infer_frame(
                 img, FeatureExtraction(), descriptors, histograms, self.hparams)
@@ -154,6 +157,7 @@ class PaintingClassifier(object):
             expected = os.path.basename(os.path.dirname(path))
             logging.debug('Expected:  %s', expected)
             logging.debug('Predicted: %s', predicted)
+            file.write(path + ';' + expected + ';' + predicted + '\n')
             if expected == predicted:
                 correct += 1
             total += 1
@@ -217,21 +221,11 @@ class PaintingClassifier(object):
             help='Path to hparams file')
         return parser
 
-<<<<<<< Updated upstream
-        measurementMode = args.ground_truth is not None and os.path.isfile(
-            args.ground_truth)
-
-        goproMode = False;
-        if args.gopro_mode > 0: goproMode = True
-
-        logging.info(goproMode)
-
-        extr = FeatureExtraction()
-=======
     def _get_descriptors_histograms(self):
->>>>>>> Stashed changes
         if os.path.isfile('./db/features/descriptors.pickle'):
             logging.info('Reading descriptors from descriptors.pickle...')
+            logging.warning(
+                'When testing different descriptors, make sure to delete the previous pickles')
             with open('./db/features/descriptors.pickle', 'rb') as file:
                 descriptors = pickle.load(file)
             with open('./db/features/histograms.pickle', 'rb') as file:

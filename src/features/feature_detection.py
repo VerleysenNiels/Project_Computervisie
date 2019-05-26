@@ -68,7 +68,7 @@ def detect_lines(img, hparams):
             hparams['canny_threshold'])
 
     if logging.root.level == logging.DEBUG:
-        viz.imshow(canny, norm=True)
+        viz.imshow(canny, 'Edge detection', resize=True, norm=True)
         # viz.imshow(contours, norm=True)
 
     if hparams['remove_hblur']:

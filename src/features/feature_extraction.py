@@ -150,6 +150,7 @@ class FeatureExtraction(object):
 
     def extract_hist(self, img):
         hist = cv2.calcHist([img], [0], None, [256], [0, 256])
+        hist = cv2.normalize(hist, hist)
         return hist
 
     def compare_hist(self, hist1, hist2):

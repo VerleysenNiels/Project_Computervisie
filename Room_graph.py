@@ -43,10 +43,10 @@ class RoomGraph:
         # Still not found -> most likely not a real transition
         return False
 
-    def highest_likely_path(self, guessed_room):
+    def highest_likely_path(self, guessed_room, confidence):
         """DETERMINE FROM THE LIST OF ROOMS AND CORRESPONDING COUNTERS THE MOST LIKELY FOLLOWED PATH"""
         # Update counter:
-        index = self.update_counter_room(guessed_room)
+        index = self.update_counter_room(guessed_room, confidence)
 
         # Case 1: guessed room is last room from path
         if index == len(self.current_path) -1:
@@ -70,7 +70,7 @@ class RoomGraph:
 
                 # Remove segment from path
                 self.current_path = self.current_path[:path_index + 1]
-                self.path_indices = self.path_indices[:path_index+1]
+                self.path_indices = self.path_indices[:path_index + 1]
 
                 # Add guessed room to path
                 self.current_path.append(guessed_room)
@@ -87,7 +87,7 @@ class RoomGraph:
 
                 # Check if guessed room has a counter between previous and new segment-border
                 while not stop and c > self.path_indices[path_index]:
-                    if self.detected_rooms[c] ==  guessed_room:
+                    if self.detected_rooms[c] == guessed_room:
                         room_score += self.detected_counters[c]
                         stop = True
                     c -= 1
@@ -99,7 +99,7 @@ class RoomGraph:
             # Case 4: Segment should not be replaced by guessed room
             return False, self.current_path
 
-    def update_counter_room(self, room):
+    def update_counter_room(self, room, confidence):
         """"
             UPDATE COUNTER OF ROOM OR ADD NEW COUNTER FOR ROOM
             RETURNS THE INDEX OF THE ROOM
@@ -116,11 +116,11 @@ class RoomGraph:
 
         if found:
             # Update counter
-            self.detected_counters[index] += 1
+            self.detected_counters[index] += confidence
         else:
             # Add new counter
             index = len(self.detected_counters)
             self.detected_rooms.append(room)
-            self.detected_counters.append(1)
+            self.detected_counters.append(confidence)
 
         return index

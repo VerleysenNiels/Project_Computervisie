@@ -36,6 +36,7 @@
   "feature_matching": {
     "type": "SURF",
     "keypoint_thresh": 600,
-    "matches_amount": 20
+    "matches_amount": 20,
+    "match_knn": true
   }
 }

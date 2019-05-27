@@ -97,6 +97,12 @@ class FeatureExtraction(object):
         elif params['type'] == 'SURF':
             detector = cv2.xfeatures2d_SURF.create(
                 hessianThreshold=params['keypoint_thresh'])
+        elif params['type'] == 'SIFT':
+            detector = cv2.xfeatures2d_SIFT.create()
+        else:
+            logging.critical(
+                'Unknown feature_matching.type: %s', params['type'])
+            exit(1)
         keypoints, descriptors = detector.detectAndCompute(img, None)
         return descriptors
 
@@ -104,16 +110,31 @@ class FeatureExtraction(object):
         params = hparams['feature_matching']
         if params['type'] == 'ORB':
             matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        elif params['type'] == 'SURF':
-            # Since SURF is a floating-point descriptor NORM_L2 is used
-            matcher = cv2.DescriptorMatcher_create(
-                cv2.DescriptorMatcher_FLANNBASED)
-        matches = matcher.match(descriptors_im, descriptors_db)
-        if len(matches) == 0:
+        elif params['type'] in ['SIFT', 'SURF']:
+            FLANN_INDEX_KDTREE = 0
+            index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+            search_params = dict(checks=50)   # or pass empty dictionary
+            matcher = cv2.FlannBasedMatcher(index_params, search_params)
+        else:
+            logging.critical(
+                'Unknown feature_matching.type: %s', params['type'])
+            exit(1)
+
+        if params['match_knn'] == False:
+            matches = matcher.match(descriptors_im, descriptors_db)
+            matches = sorted(matches, key=lambda x: x.distance)
+            n = params['matches_amount']
+            good_matches = matches[n:]
+        else:
+            matches = matcher.knnMatch(descriptors_db, descriptors_im, k=2)
+            # store all the good matches as per Lowe's ratio test.
+            good_matches = []
+            for m, n in matches:
+                if m.distance < 0.7 * n.distance:
+                    good_matches.append(m)
+
+        if len(good_matches) == 0:
             return 0
-        matches = sorted(matches, key=lambda x: x.distance)
-        n = params['matches_amount']
-        good_matches = matches[n:]
         score = 0
         for m in good_matches:
             score += m.distance

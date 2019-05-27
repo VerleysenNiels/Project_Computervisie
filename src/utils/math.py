@@ -35,15 +35,14 @@ def rolling_avg(labels):
     return None, 0
 
 
-
 def mean_difference(points, img):
     mask_1 = create_mask(points, img, False)
     mask_2 = create_mask(points, img, True)
     mean_1 = cv2.mean(img, mask_1)
     mean_2 = cv2.mean(img, mask_2)
-    diff = (mean_1[0] - mean_2[0])**2
-    + (mean_1[1] - mean_2[1])**2
-    + (mean_1[2] - mean_2[2])**2
+    diff = (mean_1[0] - mean_2[0])**2 \
+        + (mean_1[1] - mean_2[1])**2 \
+        + (mean_1[2] - mean_2[2])**2
     return diff
 
 

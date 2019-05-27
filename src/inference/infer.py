@@ -156,7 +156,7 @@ def infer(args, hparams, descriptors, histograms):
             for i, key in enumerate(metadata):
                 text = key + ': ' + metadata[key]
                 frame = cv2.putText(
-                    frame, text, (20, 20*(i+1)), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 255, 0), lineType=cv2.LINE_AA)
+                    frame, text, (20, 20*(i+1)), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             # Write predicted room and display image
 
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)

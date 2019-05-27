@@ -4,10 +4,9 @@ import json
 import cv2
 import numpy as np
 
-import feature_detection
+from src.features import feature_detection
 import io
 import math
-import perspective
 import os
 
 blue = (255, 0, 0)

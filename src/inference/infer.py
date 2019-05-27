@@ -79,9 +79,9 @@ def infer(args, hparams, descriptors, histograms):
     labels = []
     painting = np.zeros((10, 10, 3), np.uint8)
     room_graph = RoomGraph(args.room_file)
-    floor_plan = cv2.imread('./ground_truth/floor_plan/msk.jpg')
-    room_coords = viz.read_room_coords(
-        './ground_truth/floor_plan/room_coords.csv')
+    floor_plan = cv2.imread(args.map)
+    viz.read_room_coords(
+        args.coords)
     blank_image = None
     current_room = None  # Keep track of current room
     # Counter to detect being stuck in a room (bug when using graph)
@@ -102,7 +102,7 @@ def infer(args, hparams, descriptors, histograms):
         blurry = cv2.Laplacian(frame, cv2.CV_64F).var()
 
         # Change this border for blurry
-        if blurry < hparams['blurry_threshold']:
+        if blurry > hparams['blurry_threshold']:
             best, best_score, frame = infer_frame(
                 frame, extr, descriptors, histograms, hparams)
             logging.info('%s (confidence: %.2f%%)', best, 100*best_score)
@@ -139,9 +139,9 @@ def infer(args, hparams, descriptors, histograms):
             metadata['Blurriness'] = 'Too blurry (%.0f)' % blurry
 
         if measurementMode:
-            frames += 1
+            frames += (1*hparams['frame_sampling'])
             if groundTruth.room_in_frame(frames) == current_room:
-                frames_correct += 1
+                frames_correct += (1*hparams['frame_sampling'])
             metadata['Cumulative acc.'] = '%.1f%%' % (
                 100 * frames_correct / frames)
             logging.info('Cumulative accuracy: %.1f%%',

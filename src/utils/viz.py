@@ -92,7 +92,6 @@ def read_room_coords(file):
         csv_reader = csv.reader(csv_coords, delimiter=';')
         line_count = 0
         for row in csv_reader:
-            if line_count > 0:
-                room_coords[row[0]] = (int(row[1]), int(row[2]))
+            room_coords[row[0]] = (int(row[1]), int(row[2]))
             line_count += 1
     return room_coords

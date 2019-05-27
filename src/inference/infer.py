@@ -82,10 +82,6 @@ def infer(args, hparams, descriptors, histograms):
         './ground_truth/floor_plan/room_coords.csv')
     blank_image = None
     current_room = None  # Keep track of current room (internally)
-    likely_room = None
-    stuck = 0  # Counter to detect being stuck in a room (bug when using graph)
-    # Counter to detect being stuck in a room (bug when using graph)
-    stuck = 0
     metadata = dict()
     modes = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
     metadata['Mode'] = modes[args.verbose_count]
@@ -102,7 +98,7 @@ def infer(args, hparams, descriptors, histograms):
         blurry = cv2.Laplacian(frame, cv2.CV_64F).var()
 
         # Change this border for blurry
-        if blurry < hparams['blurry_threshold']:
+        if blurry > hparams['blurry_threshold']:
             best, best_score, frame = infer_frame(
                 frame, extr, descriptors, histograms, hparams)
             logging.info('%s (confidence: %.2f%%)', best, 100*best_score)
@@ -114,22 +110,23 @@ def infer(args, hparams, descriptors, histograms):
                         fx=360 / painting.shape[0],
                         fy=360 / painting.shape[0],
                         interpolation=cv2.INTER_AREA)
-                labels.append((best, best_score))
-                window = hparams['rolling_avg_window']
-                labels = labels[-window:]
-            next_hall, score = math.rolling_avg(labels)
-            logging.info('%s (%.2f%% sure)', next_hall, 100 * score)
+                #labels.append((best, best_score))
+                #window = hparams['rolling_avg_window']
+                #labels = labels[-window:]
+                #next_hall, score = math.rolling_avg(labels)
+                if best:
+                    next_hall = os.path.basename(os.path.dirname(best))
+                    score = best_score
+                logging.info('%s (%.2f%% sure)', next_hall, 100 * score)
 
-            # Calculate most likely path
-            changed, highest_likely_path = room_graph.highest_likely_path(next_hall, score)
-            if changed:
-                # REDRAW PATH
-                floor_plan = cv2.imread('.\ground_truth\\floor_plan\msk.jpg')
-                for r in range(0, len(highest_likely_path) - 2):
-                    viz.draw_path_line(floor_plan, str(highest_likely_path[r]), str(highest_likely_path[r + 1]))
+                # Calculate most likely path
+                changed, highest_likely_path = room_graph.highest_likely_path(next_hall, score)
 
-                # CHANGE MOST LIKELY HALL
-                likely_room = highest_likely_path[-1]
+                if changed:
+                    # REDRAW PATH
+                    floor_plan = cv2.imread('.\ground_truth\\floor_plan\msk.jpg')
+                    for r in range(0, len(highest_likely_path) - 1):
+                        viz.draw_path_line(floor_plan, str(highest_likely_path[r]), str(highest_likely_path[r + 1]), room_coords)
 
             metadata['Blurriness'] = 'Not blurry (%.0f)' % blurry
         else:
@@ -137,7 +134,7 @@ def infer(args, hparams, descriptors, histograms):
 
         if measurementMode:
             frames += 1
-            if groundTruth.room_in_frame(frames) == likely_room:
+            if highest_likely_path[-1] is not None and groundTruth.room_in_frame(frames) == highest_likely_path[-1]:
                 frames_correct += 1
             metadata['Cumulative acc.'] = '%.1f%%' % (
                 100 * frames_correct / frames)
@@ -155,11 +152,11 @@ def infer(args, hparams, descriptors, histograms):
             frame = np.concatenate((frame, blank_image), axis=1)
             frame[h-360:h, w:w+510] = floor_plan
 
-            metadata['Prediction'] = likely_room if likely_room else '?'
+            metadata['Prediction'] = highest_likely_path[-1] if highest_likely_path[-1] else '?'
             for i, key in enumerate(metadata):
                 text = key + ': ' + metadata[key]
                 frame = cv2.putText(
-                    frame, text, (20, 20*(i+1)), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.LINE_AA)
+                    frame, text, (20, 20*(i+1)), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 255, 0), lineType=cv2.LINE_AA)
             # Write predicted room and display image
 
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)

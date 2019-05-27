@@ -63,13 +63,13 @@ class RoomGraph:
             return True, self.current_path
 
         # Check if a segment on the end of the current path should be changed
-        path_index = len(self.current_path) -1
+        path_index = len(self.current_path) -2
         room_score = self.detected_counters[index]
         segment_score = self.detected_counters[self.path_indices[path_index]]
 
         finished = False
         while not finished and room_score > segment_score:
-            if path_index == 0 or self.transition_possible(guessed_room, self.current_path[path_index -1]):
+            if path_index == -1 or self.transition_possible(guessed_room, self.current_path[path_index -1]):
                 # Case 3: segment on the end of the current path should be replaced by the guessed room
 
                 # Remove segment from path
@@ -120,11 +120,11 @@ class RoomGraph:
 
         if found:
             # Update counter
-            self.detected_counters[index] += confidence
+            self.detected_counters[index] += 1 #confidence
         else:
             # Add new counter
             index = len(self.detected_counters)
             self.detected_rooms.append(room)
-            self.detected_counters.append(confidence)
+            self.detected_counters.append(1) #confidence)
 
         return index

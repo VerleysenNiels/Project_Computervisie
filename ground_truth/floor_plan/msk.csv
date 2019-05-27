@@ -1,4 +1,5 @@
 room,neighbours
+empty,empty
 zaal_a,zaal_b-zaal_ii
 zaal_b,zaal_a-zaal_c-zaal_d-zaal_e
 zaal_c,zaal_b-zaal_d

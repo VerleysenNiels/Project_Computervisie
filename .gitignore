@@ -107,6 +107,6 @@ venv.bak/
 .vscode/**
 .idea/**
 
-images/**
-db/**
+images/
+db/
 *.mp4

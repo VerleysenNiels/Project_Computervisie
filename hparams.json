@@ -1,0 +1,26 @@
+{
+  "image": {
+    "pre_median": 5,
+    "remove_hblur": false,
+    "canny_threshold": 40,
+    "hough_threshold": 150,
+    "min_line_length": 30,
+    "max_line_gap": 5,
+    "ratio": 0.35
+  },
+  "video": {
+    "pre_median": 5,
+    "remove_hblur": true,
+    "canny_threshold": 50,
+    "hough_threshold": 128,
+    "min_line_length": 70,
+    "max_line_gap": 5,
+    "ratio": 0.35
+  },
+  "frame_sampling": 5,
+  "blurry_threshold": 100,
+  "histogram_weight": 0.5,
+  "keypoints_weight": 0.5,
+  "rolling_avg_window": 10,
+  "stuck_threshold": 30
+}

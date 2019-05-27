@@ -49,9 +49,7 @@ def infer_frame(frame, extraction, descriptors, histograms, hparams):
 
         scores_descriptor = math.softmax(logits_descriptor)
         scores_histogram = math.softmax(logits_histogram)
-        scores = hparams['keypoints_weight'] * scores_descriptor + \
-            hparams['histogram_weight'] * \
-            scores_histogram
+        scores = hparams['keypoints_weight'] * scores_descriptor + hparams['histogram_weight'] * scores_histogram
         best_idx = np.argmax(scores)
         best_score = scores[best_idx]
         best = labels[best_idx]
@@ -83,7 +81,9 @@ def infer(args, hparams, descriptors, histograms):
     room_coords = viz.read_room_coords(
         './ground_truth/floor_plan/room_coords.csv')
     blank_image = None
-    current_room = None  # Keep track of current room
+    current_room = None  # Keep track of current room (internally)
+    likely_room = None
+    stuck = 0  # Counter to detect being stuck in a room (bug when using graph)
     # Counter to detect being stuck in a room (bug when using graph)
     stuck = 0
     metadata = dict()
@@ -119,28 +119,25 @@ def infer(args, hparams, descriptors, histograms):
                 labels = labels[-window:]
             next_hall, score = math.rolling_avg(labels)
             logging.info('%s (%.2f%% sure)', next_hall, 100 * score)
-            if not current_room or current_room == next_hall:
-                current_room = next_hall
-                stuck = 0
-            elif room_graph.transition_possible(current_room, next_hall):
-                viz.draw_path_line(
-                    floor_plan, str(next_hall), str(current_room))
-                current_room = next_hall
-                stuck = 0
-            else:
-                stuck += 1
 
-            # Alllow transition if algorithm is stuck in a room
-            if stuck > hparams['stuck_threshold']:
-                current_room = next_hall
-                stuck = 0
+            # Calculate most likely path
+            changed, highest_likely_path = room_graph.highest_likely_path(next_hall, score)
+            if changed:
+                # REDRAW PATH
+                floor_plan = cv2.imread('.\msk_grondplan.jpg')
+                for r in range(0, len(highest_likely_path) - 2):
+                    viz.draw_path_line(floor_plan, str(highest_likely_path[r]), str(highest_likely_path[r + 1]))
+
+                # CHANGE MOST LIKELY HALL
+                likely_room = highest_likely_path[-1]
+
             metadata['Blurriness'] = 'Not blurry (%.0f)' % blurry
         else:
             metadata['Blurriness'] = 'Too blurry (%.0f)' % blurry
 
         if measurementMode:
             frames += 1
-            if groundTruth.room_in_frame(frames) == current_room:
+            if groundTruth.room_in_frame(frames) == likely_room:
                 frames_correct += 1
             metadata['Cumulative acc.'] = '%.1f%%' % (
                 100 * frames_correct / frames)
@@ -158,7 +155,7 @@ def infer(args, hparams, descriptors, histograms):
             frame = np.concatenate((frame, blank_image), axis=1)
             frame[h-360:h, w:w+510] = floor_plan
 
-            metadata['Prediction'] = current_room if current_room else '?'
+            metadata['Prediction'] = likely_room if likely_room else '?'
             for i, key in enumerate(metadata):
                 text = key + ': ' + metadata[key]
                 frame = cv2.putText(

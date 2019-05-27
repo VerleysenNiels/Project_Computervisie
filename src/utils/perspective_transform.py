@@ -1,10 +1,6 @@
 import cv2
 import numpy as np
 
-import src.utils.math as math
-import src.utils.viz as viz
-
-
 def order_points(pts):
     """Orders points clockwise, starting w top left
     """

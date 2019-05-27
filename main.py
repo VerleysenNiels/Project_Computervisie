@@ -163,7 +163,7 @@ class PaintingClassifier(object):
 
         groundTruth = None
         frames_correct = 0
-        frames = 0
+        frames = 1
         if measurementMode:
             groundTruth = VideoGroundTruth()
             groundTruth.read_file(args.ground_truth)
@@ -177,9 +177,10 @@ class PaintingClassifier(object):
 
         floor_plan = cv2.imread('.\msk_grondplan.jpg')
         blank_image = None
-        hall = None  # Keep track of current room
-        # Counter to detect being stuck in a room (bug when using graph)
-        stuck = 0
+        hall = None  # Keep track of current room (internally)
+        likely_hall = None
+        stuck = 0  # Counter to detect being stuck in a room (bug when using graph)
+
         modes = ['ERROR_MODE', 'WARNING_MODE', 'INFO_MODE', 'DEBUG_MODE']
 
         for frame in io_utils.read_video(args.file.name, interval=self.hparams['frame_sampling']):
@@ -244,6 +245,18 @@ class PaintingClassifier(object):
                         hall = next_hall
                         stuck = 0
 
+                    # Calculate most likely path
+                    changed, highest_likely_path = room_graph.highest_likely_path(hall)
+                    if changed:
+                        # REDRAW PATH
+                        floor_plan = cv2.imread('.\msk_grondplan.jpg')
+                        for r in range(0, len(highest_likely_path) - 2):
+                            viz_utils.draw_path_line(floor_plan, str(highest_likely_path[r]), str(highest_likely_path[r+1]))
+
+                        # CHANGE MOST LIKELY HALL
+                        likely_hall = highest_likely_path[-1]
+
+
                 # Write amount of blurriness
                 frame = cv2.putText(frame, 'Not blurry: %.0f' % blurry, (20, 40), cv2.FONT_HERSHEY_PLAIN,
                                     1.0, (0, 0, 255), lineType=cv2.LINE_AA)
@@ -262,24 +275,24 @@ class PaintingClassifier(object):
 
             # Write predicted room and display image
             frame = cv2.putText(
-                frame, hall, (20, 60), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 0, 0), lineType=cv2.LINE_AA)
+                frame, likely_hall, (20, 60), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 0, 0), lineType=cv2.LINE_AA)
             frame = cv2.putText(frame, modes[args.verbose_count], (20, 20), cv2.FONT_HERSHEY_PLAIN,
                                 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
             cv2.namedWindow('Floor Plan', cv2.WINDOW_NORMAL)
             cv2.imshow('Floor Plan', floor_plan)
 
-            if measurementMode:
-                frames += 1
-                if groundTruth.room_in_frame(frames) == hall:
+            if measurementMode and groundTruth.room_in_frame(frames) == likely_hall:
                     frames_correct += 1
+
+            frames += 1
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
         cv2.destroyAllWindows()
         if measurementMode:
-            print('Accuracy: ' + str(frames_correct / frames))
+            print('Accuracy: ' + str(frames_correct / (frames - 1)))
 
     def _build_logger(self, level):
         logging.basicConfig(

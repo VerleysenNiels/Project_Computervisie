@@ -1,0 +1,13 @@
+Path;Expected;Predicted
+.\video-frames\zaal_a\1_0005_Layer 7.jpg;zaal_a;zaal_a
+.\video-frames\zaal_b\1_0004_Layer 8.jpg;zaal_b;None
+.\video-frames\zaal_b\1_0006_Layer 6.jpg;zaal_b;zaal_6
+.\video-frames\zaal_c\1_0003_Layer 9.jpg;zaal_c;zaal_19
+.\video-frames\zaal_d\1_0002_Layer 10.jpg;zaal_d;zaal_d
+.\video-frames\zaal_d\1_0007_Layer 5.jpg;zaal_d;zaal_9
+.\video-frames\zaal_d\1_0008_Layer 4.jpg;zaal_d;zaal_15
+.\video-frames\zaal_d\1_0009_Layer 3.jpg;zaal_d;zaal_d
+.\video-frames\zaal_f\1_0000_Layer 12.jpg;zaal_f;zaal_s
+.\video-frames\zaal_f\1_0001_Layer 11.jpg;zaal_f;zaal_1
+.\video-frames\zaal_h\1_0010_Layer 2.jpg;zaal_h;zaal_h
+.\video-frames\zaal_h\1_0011_Layer 1.jpg;zaal_h;zaal_h

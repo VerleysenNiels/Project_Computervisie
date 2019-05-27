@@ -78,7 +78,7 @@ class RoomGraph:
 
                 # Add guessed room to path
                 self.current_path.append(guessed_room)
-                self.path_indices.append(self.detected_counters[index])
+                self.path_indices.append(index)
 
                 finished = True
 

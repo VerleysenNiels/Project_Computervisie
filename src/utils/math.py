@@ -22,18 +22,20 @@ def softmax(x):
 def rolling_avg(labels):
     if len(labels) != 0:
         rooms_scores = dict()
+        nr_rooms = dict()
         for path, score in labels:
             room = os.path.basename(os.path.dirname(path))
             if room in rooms_scores:
                 rooms_scores[room] += score
+                nr_rooms[room] += 1
             else:
                 rooms_scores[room] = score
+                nr_rooms[room] = 1
         v = softmax(np.array(list(rooms_scores.values())))
         k = list(rooms_scores.keys())
         idx = np.argmax(v)
-        return k[idx], v[idx]
+        return k[idx], rooms_scores[k[idx]] / nr_rooms[k[idx]]
     return None, 0
-
 
 
 def mean_difference(points, img):
@@ -41,9 +43,7 @@ def mean_difference(points, img):
     mask_2 = create_mask(points, img, True)
     mean_1 = cv2.mean(img, mask_1)
     mean_2 = cv2.mean(img, mask_2)
-    diff = (mean_1[0] - mean_2[0])**2
-    + (mean_1[1] - mean_2[1])**2
-    + (mean_1[2] - mean_2[2])**2
+    diff = (mean_1[0] - mean_2[0])**2 + (mean_1[1] - mean_2[1])**2 + (mean_1[2] - mean_2[2])**2
     return diff
 
 

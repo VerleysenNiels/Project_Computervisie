@@ -16,7 +16,8 @@
   "video": {
     "pre_median": 5,
     "remove_hblur": true,
-    "edge_detection": "dog",
+    "edge_detection": "canny",
+    "canny_threshold": 50,
     "dog_dimension": 64,
     "dog_threshold": 30,
     "dog_erode": 3,

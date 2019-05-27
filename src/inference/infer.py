@@ -124,7 +124,7 @@ def infer(args, hparams, descriptors, histograms):
             changed, highest_likely_path = room_graph.highest_likely_path(next_hall, score)
             if changed:
                 # REDRAW PATH
-                floor_plan = cv2.imread('.\msk_grondplan.jpg')
+                floor_plan = cv2.imread('.\ground_truth\\floor_plan\msk.jpg')
                 for r in range(0, len(highest_likely_path) - 2):
                     viz.draw_path_line(floor_plan, str(highest_likely_path[r]), str(highest_likely_path[r + 1]))
 
@@ -171,4 +171,4 @@ def infer(args, hparams, descriptors, histograms):
     if measurementMode:
         logging.info('Global accuracy: %.1f%%', 100*frames_correct / frames)
 
-    return frames_correct / frame
+    return frames_correct / frames

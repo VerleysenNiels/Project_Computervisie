@@ -7,6 +7,7 @@ import random
 import cv2
 import numpy as np
 from sklearn.metrics import f1_score
+from sklearn.neighbors import KDTree
 
 import src.utils.perspective_transform as perspective
 
@@ -44,6 +45,7 @@ def mean_difference(points, img):
     mean_1 = cv2.mean(img, mask_1)
     mean_2 = cv2.mean(img, mask_2)
     diff = (mean_1[0] - mean_2[0])**2 + (mean_1[1] - mean_2[1])**2 + (mean_1[2] - mean_2[2])**2
+
     return diff
 
 
@@ -258,29 +260,82 @@ def bounding_rect(lines, hparams, theta_threshold=.1):
     else:
         # The ratio is good, return the bounding rectangle
         l1 = lines[best]
-        l2 = lines[parallel[best][par][0]]
-        l3 = lines[perpendicular[best][perp1][0]]
+        l2 = lines[perpendicular[best][perp1][0]]
+        l3 = lines[parallel[best][par][0]]
         l4 = lines[perpendicular[best][perp2][0]]
-        return np.array([l1, l2, l3, l4])
+        corners = np.int32([
+            intersections(l1, l2),
+            intersections(l2, l3),
+            intersections(l3, l4),
+            intersections(l4, l1),
+        ])
+        corners = perspective.order_points(corners)
+        return corners
 
 
-def order_points(pts):
-    """Orders points clockwise, starting w top left
-    """
-    rect = np.zeros((4, 2), dtype="float32")
-    s = pts.sum(axis=1)
-    rect[0] = pts[np.argmin(s)]
-    rect[2] = pts[np.argmax(s)]
-    diff = np.diff(pts, axis=1)
-    rect[1] = pts[np.argmin(diff)]
-    rect[3] = pts[np.argmax(diff)]
-    return rect
+def bounding_rect_2(lines, hparams, shape, theta_threshold=.1):
+    lines_polar = [to_polar(l) for l in lines]
+
+    buckets = [[] for _ in range(18)]
+    for idx, (rho, theta) in enumerate(lines_polar):
+        buckets[int(theta * 17.5 / math.pi)].append(idx)
+
+    top = np.array([len(b) for b in buckets]).argsort()[-2:]
+
+    first = list(sorted(buckets[top[0]], key=lambda idx: lines_polar[idx][0]))
+    second = list(sorted(buckets[top[1]], key=lambda idx: lines_polar[idx][0]))
+
+    indices = [0, 0, len(first)-1, len(second)-1]
+    bad_ratio = True
+    while(bad_ratio and indices[0] < indices[2] and indices[1] < indices[3]):
+        line1 = first[indices[0]]
+        line2 = second[indices[1]]
+        line3 = first[indices[2]]
+        line4 = second[indices[3]]
+
+        width = abs(lines_polar[line1][0] - lines_polar[line3][0])
+        height = abs(lines_polar[line2][0] - lines_polar[line4][0])
+        if out_of_ratio(width, height, hparams['ratio']):
+            if width > height:
+                indices[0] += 1
+            else:
+                indices[1] += 1
+        else:
+            corners = np.int32([
+                intersections(lines[line1], lines[line2]),
+                intersections(lines[line2], lines[line3]),
+                intersections(lines[line3], lines[line4]),
+                intersections(lines[line4], lines[line1]),
+            ])
+            out_of_frame = False
+            for idx, (x, y) in enumerate(corners):
+                if not (0 <= x < shape[1] and 0 <= y < shape[0]):
+                    out_of_frame = True
+                    if idx <= 1:
+                        indices[idx] += 1
+                    else:
+                        indices[idx] -= 1
+                    break
+            bad_ratio = out_of_frame
+
+    line1 = first[indices[0]]
+    line2 = second[indices[1]]
+    line3 = first[indices[2]]
+    line4 = second[indices[3]]
+    corners = np.int32([
+        intersections(lines[line1], lines[line2]),
+        intersections(lines[line2], lines[line3]),
+        intersections(lines[line3], lines[line4]),
+        intersections(lines[line4], lines[line1]),
+    ])
+    corners = perspective.order_points(corners)
+    return corners
 
 
 def create_mask(points, img, invert=True):
     '''Create a binary mask 
     '''
-    points = order_points(points).astype('int32')
+    points = perspective.order_points(points).astype('int32')
     pts = points.reshape((-1, 1, 2))
     if not invert:
         mask = np.zeros((img.shape[0], img.shape[1]), dtype='uint8')

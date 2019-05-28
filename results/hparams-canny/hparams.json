@@ -14,6 +14,7 @@
   "video": {
     "pre_median": 5,
     "remove_hblur": true,
+    "edge_detection": "canny",
     "canny_threshold": 50,
     "hough_threshold": 128,
     "min_line_length": 70,

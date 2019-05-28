@@ -56,7 +56,8 @@ class IoU():
                         img, corners_exp, color=(0, 0, 255))
                     img = viz.overlay_polygon(
                         img, corners_pred)
-                    viz.imshow(img)
+                    viz.imshow(img, name='Result')
+                    cv2.waitKey(500)
 
                 iou = self.compute(corners_pred, corners_exp)
                 logging.info('%s: %.2f%%', line[0], 100 * iou)

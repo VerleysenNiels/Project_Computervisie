@@ -35,8 +35,9 @@
   "rolling_avg_window": 15,
   "stuck_threshold": 30,
   "feature_matching": {
-    "type": "SURF",
+    "type": "ORB",
     "keypoint_thresh": 600,
-    "matches_amount": 20
+    "matches_amount": 20,
+    "match_knn": false
   }
 }

@@ -64,7 +64,6 @@ class PaintingClassifier(object):
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
         self.hparams = json.load(open(args.config))
-
         for file in ['descriptors.pickle', 'histograms.pickle']:
             if os.path.isfile(file):
                 logging.info('Removing old %s', file)
@@ -196,6 +195,16 @@ class PaintingClassifier(object):
             default=False,
             action='store_true',
             help='Do not show any images, only output to commandline')
+        parser.add_argument(
+            '-p', '--map', dest='map',
+            default='./ground_truth/floor_plan/msk.jpg',
+            help='Passes an image that represents the map of the building'
+        )
+        parser.add_argument(
+            '-t', '--coords', dest='coords',
+            default='./ground_truth/floor_plan/room_coords.csv',
+            help='Passes a csv file that represents the coordinates of all the rooms present on the map of the building'
+        )
         args = parser.parse_args(sys.argv[2:])
         self._build_logger(args.verbose_count)
         self.hparams = json.load(open(args.config))

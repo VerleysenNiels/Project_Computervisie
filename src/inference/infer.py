@@ -77,9 +77,9 @@ def infer(args, hparams, descriptors, histograms):
     labels = []
     painting = np.zeros((10, 10, 3), np.uint8)
     room_graph = RoomGraph(args.room_file)
-    floor_plan = cv2.imread('./ground_truth/floor_plan/msk.jpg')
+    floor_plan = cv2.imread(args.map)
     room_coords = viz.read_room_coords(
-        './ground_truth/floor_plan/room_coords.csv')
+        args.coords)
     blank_image = None
     current_room = None  # Keep track of current room (internally)
     metadata = dict()
@@ -110,10 +110,7 @@ def infer(args, hparams, descriptors, histograms):
                         fx=360 / painting.shape[0],
                         fy=360 / painting.shape[0],
                         interpolation=cv2.INTER_AREA)
-                #labels.append((best, best_score))
-                #window = hparams['rolling_avg_window']
-                #labels = labels[-window:]
-                #next_hall, score = math.rolling_avg(labels)
+                    
                 if best:
                     next_hall = os.path.basename(os.path.dirname(best))
                     score = best_score
@@ -136,6 +133,7 @@ def infer(args, hparams, descriptors, histograms):
             frames += 1
             if highest_likely_path[-1] is not None and groundTruth.room_in_frame(frames) == highest_likely_path[-1]:
                 frames_correct += 1
+
             metadata['Cumulative acc.'] = '%.1f%%' % (
                 100 * frames_correct / frames)
             logging.info('Cumulative accuracy: %.1f%%',

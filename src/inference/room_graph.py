@@ -22,8 +22,7 @@ class RoomGraph:
             csv_reader = csv.DictReader(csv_file)
             line_count = 0
             for row in csv_reader:
-                if line_count > 0:
-                    self.rooms[row["room"]] = row["neighbours"].split('-')
+                self.rooms[row["room"]] = row["neighbours"].split('-')
                 line_count += 1
 
             logging.info('Processed %d lines from %s', line_count, file)

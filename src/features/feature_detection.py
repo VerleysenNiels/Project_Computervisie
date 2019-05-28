@@ -145,22 +145,13 @@ def detect_perspective(img, hparams):
     if logging.root.level <= logging.INFO:
         img = viz.overlay_lines_cartesian(img, all_lines)
 
-    # all_corners = detect_corners(img)
-    lines = math.bounding_rect(
-        all_lines, hparams)  # Pick best 4 lines
-    # lines = math.bounding_rect_2(all_lines, estimate)
+    points = math.bounding_rect_2(all_lines, hparams, img.shape)
+    # points = math.bounding_rect(all_lines, hparams)
 
-    if len(lines) < 4:
+    if len(points) < 4:
         return np.int32([]), img
 
-    points = np.int32(
-        [
-            math.intersections(lines[0], lines[2]),
-            math.intersections(lines[1], lines[2]),
-            math.intersections(lines[1], lines[3]),
-            math.intersections(lines[0], lines[3]),
-        ]
-    )  # Calculate intersection points
+    points = np.int32(points)  # Calculate intersection points
 
     if logging.root.level <= logging.INFO:
         img = viz.overlay_polygon(img, points, color=(255, 0, 0))

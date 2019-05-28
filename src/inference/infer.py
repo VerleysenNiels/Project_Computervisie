@@ -49,9 +49,7 @@ def infer_frame(frame, extraction, descriptors, histograms, hparams):
 
         scores_descriptor = math.softmax(logits_descriptor)
         scores_histogram = math.softmax(logits_histogram)
-        scores = hparams['keypoints_weight'] * scores_descriptor + \
-            hparams['histogram_weight'] * \
-            scores_histogram
+        scores = hparams['keypoints_weight'] * scores_descriptor + hparams['histogram_weight'] * scores_histogram
         best_idx = np.argmax(scores)
         best_score = scores[best_idx]
         best = labels[best_idx]
@@ -83,9 +81,7 @@ def infer(args, hparams, descriptors, histograms):
     room_coords = viz.read_room_coords(
         args.coords)
     blank_image = None
-    current_room = None  # Keep track of current room
-    # Counter to detect being stuck in a room (bug when using graph)
-    stuck = 0
+    current_room = None  # Keep track of current room (internally)
     metadata = dict()
     modes = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
     metadata['Mode'] = modes[args.verbose_count]
@@ -114,34 +110,30 @@ def infer(args, hparams, descriptors, histograms):
                         fx=360 / painting.shape[0],
                         fy=360 / painting.shape[0],
                         interpolation=cv2.INTER_AREA)
-                labels.append((best, best_score))
-                window = hparams['rolling_avg_window']
-                labels = labels[-window:]
-            next_hall, score = math.rolling_avg(labels)
-            logging.info('%s (%.2f%% sure)', next_hall, 100 * score)
-            if not current_room or current_room == next_hall:
-                current_room = next_hall
-                stuck = 0
-            elif room_graph.transition_possible(current_room, next_hall):
-                viz.draw_path_line(
-                    floor_plan, str(next_hall), str(current_room), room_coords)
-                current_room = next_hall
-                stuck = 0
-            else:
-                stuck += 1
+                    
+                if best:
+                    next_hall = os.path.basename(os.path.dirname(best))
+                    score = best_score
+                logging.info('%s (%.2f%% sure)', next_hall, 100 * score)
 
-            # Alllow transition if algorithm is stuck in a room
-            if stuck > hparams['stuck_threshold']:
-                current_room = next_hall
-                stuck = 0
+                # Calculate most likely path
+                changed, highest_likely_path = room_graph.highest_likely_path(next_hall, score)
+
+                if changed:
+                    # REDRAW PATH
+                    floor_plan = cv2.imread('.\ground_truth\\floor_plan\msk.jpg')
+                    for r in range(0, len(highest_likely_path) - 1):
+                        viz.draw_path_line(floor_plan, str(highest_likely_path[r]), str(highest_likely_path[r + 1]), room_coords)
+
             metadata['Blurriness'] = 'Not blurry (%.0f)' % blurry
         else:
             metadata['Blurriness'] = 'Too blurry (%.0f)' % blurry
 
         if measurementMode:
-            frames += (1*hparams['frame_sampling'])
-            if groundTruth.room_in_frame(frames) == current_room:
-                frames_correct += (1*hparams['frame_sampling'])
+            frames += 1
+            if highest_likely_path[-1] is not None and groundTruth.room_in_frame(frames) == highest_likely_path[-1]:
+                frames_correct += 1
+
             metadata['Cumulative acc.'] = '%.1f%%' % (
                 100 * frames_correct / frames)
             logging.info('Cumulative accuracy: %.1f%%',
@@ -158,11 +150,11 @@ def infer(args, hparams, descriptors, histograms):
             frame = np.concatenate((frame, blank_image), axis=1)
             frame[h-360:h, w:w+510] = floor_plan
 
-            metadata['Prediction'] = current_room if current_room else '?'
+            metadata['Prediction'] = highest_likely_path[-1] if highest_likely_path[-1] else '?'
             for i, key in enumerate(metadata):
                 text = key + ': ' + metadata[key]
                 frame = cv2.putText(
-                    frame, text, (20, 20*(i+1)), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.LINE_AA)
+                    frame, text, (20, 20*(i+1)), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), lineType=cv2.LINE_AA)
             # Write predicted room and display image
 
             cv2.imshow(args.file.name + ' (press Q to quit)', frame)
@@ -174,4 +166,4 @@ def infer(args, hparams, descriptors, histograms):
     if measurementMode:
         logging.info('Global accuracy: %.1f%%', 100*frames_correct / frames)
 
-    return frames_correct / frame
+    return frames_correct / frames

@@ -259,6 +259,7 @@ class PaintingClassifier(object):
             logging.info('Writing histograms to histograms.pickle...')
             with open('./db/features/histograms.pickle', 'wb+') as file:
                 pickle.dump(histograms, file, protocol=-1)
+
         return descriptors, histograms
 
 

@@ -17,9 +17,8 @@ class VideoGroundTruth:
             csv_reader = csv.DictReader(csv_file)
             line_count = 0
             for row in csv_reader:
-                if line_count > 0:
-                    self.frames.append(int(row["frames"]))
-                    self.rooms.append(row["rooms"])
+                self.frames.append(int(row["frames"]))
+                self.rooms.append(row["rooms"])
                 line_count += 1
             logging.info('Processed %d lines from %s', line_count,  file)
 

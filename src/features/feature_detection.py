@@ -145,8 +145,8 @@ def detect_perspective(img, hparams):
     if logging.root.level <= logging.INFO:
         img = viz.overlay_lines_cartesian(img, all_lines)
 
-    points = math.bounding_rect_2(all_lines, hparams, img.shape)
-    # points = math.bounding_rect(all_lines, hparams)
+    # points = math.bounding_rect_2(all_lines, hparams, img.shape)
+    points = math.bounding_rect(all_lines, hparams)
 
     if len(points) < 4:
         return np.int32([]), img

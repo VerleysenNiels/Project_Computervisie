@@ -7,6 +7,7 @@ import pickle
 import platform
 import shutil
 import sys
+import time
 
 import cv2
 import numpy as np
@@ -17,9 +18,9 @@ import src.utils.math as math
 import src.utils.perspective_transform as perspective
 import src.utils.viz as viz
 from src.evaluation.accuracy import IoU
+from src.evaluation.video_ground_truth import VideoGroundTruth
 from src.features.feature_extraction import FeatureExtraction
 from src.inference.room_graph import RoomGraph
-from src.evaluation.video_ground_truth import VideoGroundTruth
 
 
 def infer_frame(frame, extraction, descriptors, histograms, hparams):
@@ -49,7 +50,8 @@ def infer_frame(frame, extraction, descriptors, histograms, hparams):
 
         scores_descriptor = math.softmax(logits_descriptor)
         scores_histogram = math.softmax(logits_histogram)
-        scores = hparams['keypoints_weight'] * scores_descriptor + hparams['histogram_weight'] * scores_histogram
+        scores = hparams['keypoints_weight'] * scores_descriptor + \
+            hparams['histogram_weight'] * scores_histogram
         best_idx = np.argmax(scores)
         best_score = scores[best_idx]
         best = labels[best_idx]
@@ -85,6 +87,7 @@ def infer(args, hparams, descriptors, histograms):
     metadata = dict()
     modes = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
     metadata['Mode'] = modes[args.verbose_count]
+    total_time, total_frames = 0, 0
     for frame in io.read_video(args.file.name, interval=hparams['frame_sampling']):
         # frame = viz.process_gopro_video(frame, 6, 10)
         frame = cv2.resize(
@@ -99,9 +102,16 @@ def infer(args, hparams, descriptors, histograms):
 
         # Change this border for blurry
         if blurry > hparams['blurry_threshold']:
+
+            start_time = time.time()
             best, best_score, frame = infer_frame(
                 frame, extr, descriptors, histograms, hparams)
+            end_time = time.time()
             logging.info('%s (confidence: %.2f%%)', best, 100*best_score)
+            total_time += (end_time - start_time)
+            total_frames += 1
+            logging.info('Average matching speed: %.2fs per frame',
+                         total_time/total_frames)
             if best:
                 if best != current_room:
                     painting = cv2.imread(best)
@@ -110,20 +120,22 @@ def infer(args, hparams, descriptors, histograms):
                         fx=360 / painting.shape[0],
                         fy=360 / painting.shape[0],
                         interpolation=cv2.INTER_AREA)
-                    
+
                 if best:
                     next_hall = os.path.basename(os.path.dirname(best))
                     score = best_score
                 logging.info('%s (%.2f%% sure)', next_hall, 100 * score)
 
                 # Calculate most likely path
-                changed, highest_likely_path = room_graph.highest_likely_path(next_hall, score)
+                changed, highest_likely_path = room_graph.highest_likely_path(
+                    next_hall, score)
 
                 if changed:
                     # REDRAW PATH
                     floor_plan = cv2.imread(args.map)
                     for r in range(0, len(highest_likely_path) - 1):
-                        viz.draw_path_line(floor_plan, str(highest_likely_path[r]), str(highest_likely_path[r + 1]), room_coords)
+                        viz.draw_path_line(floor_plan, str(highest_likely_path[r]), str(
+                            highest_likely_path[r + 1]), room_coords)
 
             metadata['Blurriness'] = 'Not blurry (%.0f)' % blurry
         else:
@@ -150,7 +162,8 @@ def infer(args, hparams, descriptors, histograms):
             frame = np.concatenate((frame, blank_image), axis=1)
             frame[h-360:h, w:w+510] = floor_plan
 
-            metadata['Prediction'] = highest_likely_path[-1] if len(highest_likely_path) > 0 else '?'
+            metadata['Prediction'] = highest_likely_path[-1] if len(
+                highest_likely_path) > 0 else '?'
             for i, key in enumerate(metadata):
                 text = key + ': ' + metadata[key]
                 frame = cv2.putText(

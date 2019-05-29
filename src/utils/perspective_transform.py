@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 def order_points(pts):
     """Orders points clockwise, starting w top left
     """
@@ -30,7 +31,9 @@ def perspective_transform(img, points):
         [x_max, y_max],
         [x_min, y_max],
     ])
-    M = cv2.getPerspectiveTransform(points, dst)
+
+    M = cv2.getPerspectiveTransform(
+        points.astype('float32'), dst.astype('float32'))
     img = cv2.warpPerspective(img, M, img.shape[1::-1])
     crop_img = img[:512, :512]
     return cv2.resize(crop_img, (512, 512))

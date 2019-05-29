@@ -78,8 +78,7 @@ def infer(args, hparams, descriptors, histograms):
     painting = np.zeros((10, 10, 3), np.uint8)
     room_graph = RoomGraph(args.room_file)
     floor_plan = cv2.imread(args.map)
-    room_coords = viz.read_room_coords(
-        args.coords)
+    room_coords = viz.read_room_coords(args.coords)
     blank_image = None
     current_room = None  # Keep track of current room (internally)
     metadata = dict()
@@ -121,7 +120,7 @@ def infer(args, hparams, descriptors, histograms):
 
                 if changed:
                     # REDRAW PATH
-                    floor_plan = cv2.imread('.\ground_truth\\floor_plan\msk.jpg')
+                    floor_plan = cv2.imread(args.map)
                     for r in range(0, len(highest_likely_path) - 1):
                         viz.draw_path_line(floor_plan, str(highest_likely_path[r]), str(highest_likely_path[r + 1]), room_coords)
 
@@ -131,7 +130,7 @@ def infer(args, hparams, descriptors, histograms):
 
         if measurementMode:
             frames += 1
-            if highest_likely_path[-1] is not None and groundTruth.room_in_frame(frames) == highest_likely_path[-1]:
+            if highest_likely_path[-1] is not None and groundTruth.room_in_frame(frames * hparams['frame_sampling']) == highest_likely_path[-1]:
                 frames_correct += 1
 
             metadata['Cumulative acc.'] = '%.1f%%' % (

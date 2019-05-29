@@ -31,7 +31,7 @@
     "min_rect_size": 150
   },
   "frame_sampling": 5,
-  "blurry_threshold": 100,
+  "blurry_threshold": 70,
   "histogram_weight": 0.1,
   "keypoints_weight": 0.9,
   "rolling_avg_window": 15,

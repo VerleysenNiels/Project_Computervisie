@@ -48,6 +48,7 @@ class RoomGraph:
 
     def highest_likely_path(self, guessed_room, confidence):
         """DETERMINE FROM THE LIST OF ROOMS AND CORRESPONDING COUNTERS THE MOST LIKELY FOLLOWED PATH"""
+
         # Update counter:
         index = self.update_counter_room(guessed_room, confidence)
 

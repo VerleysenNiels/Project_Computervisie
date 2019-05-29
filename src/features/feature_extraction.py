@@ -125,13 +125,15 @@ class FeatureExtraction(object):
             matches = sorted(matches, key=lambda x: x.distance)
             n = params['matches_amount']
             good_matches = matches[n:]
-        else:
+        elif descriptors_im is not None:
             matches = matcher.knnMatch(descriptors_db, descriptors_im, k=2)
             # store all the good matches as per Lowe's ratio test.
             good_matches = []
             for m, n in matches:
                 if m.distance < 0.7 * n.distance:
                     good_matches.append(m)
+        else:
+            return 0
 
         if len(good_matches) == 0:
             return 0

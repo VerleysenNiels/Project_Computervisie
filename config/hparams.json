@@ -11,7 +11,8 @@
     "hough_resolution_theta": 1,
     "min_line_length": 10,
     "max_line_gap": 5,
-    "ratio": 0.35
+    "ratio": 0.35,
+    "min_rect_size": 50
   },
   "video": {
     "pre_median": 5,
@@ -26,10 +27,11 @@
     "hough_resolution_theta": 1,
     "min_line_length": 70,
     "max_line_gap": 5,
-    "ratio": 0.35
+    "ratio": 0.35,
+    "min_rect_size": 150
   },
   "frame_sampling": 5,
-  "blurry_threshold": 60,
+  "blurry_threshold": 100,
   "histogram_weight": 0.1,
   "keypoints_weight": 0.9,
   "rolling_avg_window": 15,

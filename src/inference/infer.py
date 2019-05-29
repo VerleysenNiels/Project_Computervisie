@@ -79,6 +79,7 @@ def infer(args, hparams, descriptors, histograms):
     room_graph = RoomGraph(args.room_file)
     floor_plan = cv2.imread(args.map)
     room_coords = viz.read_room_coords(args.coords)
+    highest_likely_path = []
     blank_image = None
     current_room = None  # Keep track of current room (internally)
     metadata = dict()
@@ -130,7 +131,7 @@ def infer(args, hparams, descriptors, histograms):
 
         if measurementMode:
             frames += 1
-            if highest_likely_path[-1] is not None and groundTruth.room_in_frame(frames * hparams['frame_sampling']) == highest_likely_path[-1]:
+            if len(highest_likely_path) > 0 and groundTruth.room_in_frame(frames * hparams['frame_sampling']) == highest_likely_path[-1]:
                 frames_correct += 1
 
             metadata['Cumulative acc.'] = '%.1f%%' % (
@@ -149,7 +150,7 @@ def infer(args, hparams, descriptors, histograms):
             frame = np.concatenate((frame, blank_image), axis=1)
             frame[h-360:h, w:w+510] = floor_plan
 
-            metadata['Prediction'] = highest_likely_path[-1] if highest_likely_path[-1] else '?'
+            metadata['Prediction'] = highest_likely_path[-1] if len(highest_likely_path) > 0 else '?'
             for i, key in enumerate(metadata):
                 text = key + ': ' + metadata[key]
                 frame = cv2.putText(

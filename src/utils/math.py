@@ -257,6 +257,11 @@ def bounding_rect(lines, hparams, theta_threshold=.1):
         logging.warning('Perspective transform: Bad aspect ratio (%f) ',
                         min(width / height, height/width))
         return []
+    elif width < hparams['min_rect_size'] or height < hparams['min_rect_size']:
+        # Rectangle is too small
+        logging.warning('Perspective transform: Detected rectangle too small (%f) ',
+                        min(width, height))
+        return []
     else:
         # The ratio is good, return the bounding rectangle
         l1 = lines[best]
@@ -318,10 +323,26 @@ def bounding_rect_2(lines, hparams, shape, theta_threshold=.1):
                     break
             bad_ratio = out_of_frame
 
+
     line1 = first[indices[0]]
     line2 = second[indices[1]]
     line3 = first[indices[2]]
     line4 = second[indices[3]]
+
+    width = abs(lines_polar[line1][0] - lines_polar[line3][0])
+    height = abs(lines_polar[line2][0] - lines_polar[line4][0])
+
+    if out_of_ratio(width, height, hparams['ratio']):
+        # Ratio is still bad, so there is no good bounding rectangle
+        logging.warning('Perspective transform: Bad aspect ratio (%f) ',
+                        min(width / height, height/width))
+        return []
+    elif width < hparams['min_rect_size'] or height < hparams['min_rect_size']:
+        # Rectangle is too small
+        logging.warning('Perspective transform: Detected rectangle too small (%f) ',
+                        min(width, height))
+        return []
+
     corners = np.int32([
         intersections(lines[line1], lines[line2]),
         intersections(lines[line2], lines[line3]),

@@ -158,8 +158,8 @@ class FeatureExtraction(object):
     def compare_hist(self, hist1, hist2):
         # -1 = no similarity
         # +1 = perfect similarity
-        score = cv2.compareHist(hist1, hist2, method=cv2.HISTCMP_CORREL)
-        return (1+score)/2
+        score = cv2.compareHist(hist1, hist2, method=cv2.CV_COMP_INTERSECT)
+        return (score)
 
 
 if __name__ == "__main__":

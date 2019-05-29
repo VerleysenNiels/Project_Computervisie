@@ -72,6 +72,7 @@ def infer(args, hparams, descriptors, histograms):
     groundTruth = None
     if measurementMode:
         frames_correct = 0
+        matches_correct = 0
         frames = 0
         groundTruth = VideoGroundTruth()
         groundTruth.read_file(args.ground_truth)
@@ -113,6 +114,7 @@ def infer(args, hparams, descriptors, histograms):
             logging.info('Average matching speed: %.2fs per frame',
                          total_time/total_frames)
             if best:
+
                 if best != current_room:
                     painting = cv2.imread(best)
                     painting = cv2.resize(
@@ -121,9 +123,8 @@ def infer(args, hparams, descriptors, histograms):
                         fy=360 / painting.shape[0],
                         interpolation=cv2.INTER_AREA)
 
-                if best:
-                    next_hall = os.path.basename(os.path.dirname(best))
-                    score = best_score
+                next_hall = os.path.basename(os.path.dirname(best))
+                score = best_score
                 logging.info('%s (%.2f%% sure)', next_hall, 100 * score)
 
                 # Calculate most likely path
@@ -143,6 +144,8 @@ def infer(args, hparams, descriptors, histograms):
 
         if measurementMode:
             frames += 1
+            if next_hall and groundTruth.room_in_frame(frames * hparams['frame_sampling']) == next_hall:
+                matches_correct += 1
             if len(highest_likely_path) > 0 and groundTruth.room_in_frame(frames * hparams['frame_sampling']) == highest_likely_path[-1]:
                 frames_correct += 1
 
@@ -150,6 +153,8 @@ def infer(args, hparams, descriptors, histograms):
                 100 * frames_correct / frames)
             logging.info('Cumulative accuracy: %.1f%%',
                          100*frames_correct / frames)
+            logging.info('Cumulative matching accuracy: %.1f%%',
+                         100*matches_correct / frames)
 
         if not args.silent:
             h, w = frame.shape[:2]

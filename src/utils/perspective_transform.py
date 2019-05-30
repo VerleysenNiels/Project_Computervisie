@@ -3,8 +3,7 @@ import numpy as np
 
 
 def order_points(pts):
-    """Orders points clockwise, starting w top left
-    """
+    """ Orders points clockwise, starting w top left """
     rect = np.zeros((4, 2), dtype="float32")
     s = pts.sum(axis=1)
     rect[0] = pts[np.argmin(s)]
@@ -16,7 +15,8 @@ def order_points(pts):
 
 
 def perspective_transform(img, points):
-    """Transform an image's perspective given 4 (unordered) points and crop the image around it
+    """ Transform an image's perspective given 4 (unordered) points and crop 
+        the image around it
     """
     if len(points) < 4:
         return cv2.resize(img, (512, 512))

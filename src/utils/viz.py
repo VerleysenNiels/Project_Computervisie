@@ -5,8 +5,10 @@ import csv
 
 
 def imshow(img, name='Image', norm=False, resize=True):
-    """Display an image
-    """
+    """ Display an image.
+        Note: The window will not stay open unless a cv2.waitKey() function
+              is called after it.
+     """
     if resize:
         img = cv2.resize(
             img, (0, 0),
@@ -16,10 +18,15 @@ def imshow(img, name='Image', norm=False, resize=True):
     if norm:
         img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
     cv2.imshow(name, img.astype('uint8'))
-    # cv2.destroyAllWindows()
 
 
 def overlay_polygon(img, points, color=(255, 0, 0)):
+    """ Overlay a polygon on an image.
+
+    Returns:
+        A new image with a polygon overlayed, the original image remains 
+        untouched
+    """
     out = np.copy(img)
     pts = points.reshape((-1, 1, 2))
     out = cv2.polylines(out, [pts], True, color, 2, cv2.LINE_AA)
@@ -27,8 +34,11 @@ def overlay_polygon(img, points, color=(255, 0, 0)):
 
 
 def overlay_lines_cartesian(img, lines):
-    """Overlay lines in Cartesian coordinates on an image
-    lines: array containing (x1, y1, x2, y2) quadruplets
+    """ Overlay lines in Cartesian coordinates on an image. 
+
+    Returns:
+        A new image with the lines overlayed, the original image remains 
+        untouched
     """
     out = np.copy(img)
     for line in lines:
@@ -42,8 +52,12 @@ def overlay_lines_cartesian(img, lines):
 
 
 def overlay_points(img, points):
-    """Overlay points on an image
-    """
+    """ Overlay points on an image.
+
+    Returns:
+        A new image with the points overlayed, the original image remains 
+        untouched
+     """
     out = np.copy(img)
     for i, point in enumerate(points):
         out = cv2.circle(out,
@@ -58,11 +72,23 @@ def overlay_points(img, points):
 
 
 def draw_path_line(img, room, nextroom, room_coords):
+    """ Draw a line on `img` from `room` to `nextroom` 
+
+    Arguments:
+        img -- The image to draw on
+        room {string} -- The starting room
+        nextroom {string} -- The ending room
+        room_coords {dict} -- The coordinates of the rooms
+    """
     cv2.line(img, room_coords[room],
              room_coords[nextroom], (255, 0, 0), 2)
 
 
 def process_gopro_video(frame, board_w, board_h):
+    """ Rectify an image based on calibration parameters
+    Returns:
+        The rectified image
+    """
     dims = (board_w, board_h)
     objp = np.zeros((dims[0]*dims[1], 3), np.float32)
     objp[:, :2] = np.mgrid[0:dims[0], 0:dims[1]].T.reshape(-1, 2)
@@ -73,25 +99,5 @@ def process_gopro_video(frame, board_w, board_h):
     D = np.array([-2.7971075073202351e-01, 1.2737835217024596e-01,
                   5.5264049900636148e-04, -2.4709811526299534e-04,
                   -3.7787805887358195e-02])
-
-    # Calib_W
-    # C = np.array([[5.6729034524746328e+02, 0., 6.3764777940570559e+02], [0.,
-    #                                                                     5.7207768469558505e+02,
-    #                                                                     3.3299427011674493e+02], [0., 0., 1.]])
-    # D = np.array([-2.4637408439446815e-01, 7.6662428015464898e-02,
-    #              -2.7014001885212116e-05, -3.1925229062179259e-04,
-    #
-
     im_rect = cv2.undistort(frame, C, D, None, C)
     return im_rect
-
-
-def read_room_coords(file):
-    room_coords = dict()
-    with open(file) as csv_coords:
-        csv_reader = csv.reader(csv_coords, delimiter=';')
-        line_count = 0
-        for row in csv_reader:
-            room_coords[row[0]] = (int(row[1]), int(row[2]))
-            line_count += 1
-    return room_coords

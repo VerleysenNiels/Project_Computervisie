@@ -81,8 +81,9 @@ def infer(args, hparams, descriptors, histograms):
     painting = np.zeros((10, 10, 3), np.uint8)
     room_graph = RoomGraph(args.room_file)
     floor_plan = cv2.imread(args.map)
-    room_coords = viz.read_room_coords(args.coords)
+    room_coords = io.read_room_coords(args.coords)
     highest_likely_path = []
+    next_hall = None
     blank_image = None
     current_room = None  # Keep track of current room (internally)
     metadata = dict()

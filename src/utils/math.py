@@ -13,7 +13,7 @@ import src.utils.perspective_transform as perspective
 
 
 def softmax(x):
-    """Compute softmax values for each sets of scores in x."""
+    """ Compute softmax values for each sets of scores in x. """
     if len(x) != 0:
         e_x = np.exp(x - np.max(x))
         return np.array(e_x / e_x.sum())
@@ -21,6 +21,11 @@ def softmax(x):
 
 
 def rolling_avg(labels):
+    """ Compute the best room from a series of painting predictions
+
+    Returns:
+        Tuple of best room (string) and the confidence of the prediction
+    """
     if len(labels) != 0:
         rooms_scores = dict()
         nr_rooms = dict()
@@ -32,31 +37,15 @@ def rolling_avg(labels):
             else:
                 rooms_scores[room] = score
                 nr_rooms[room] = 1
-        v = softmax(np.array(list(rooms_scores.values())))
+        v = list(rooms_scores.values())
         k = list(rooms_scores.keys())
         idx = np.argmax(v)
         return k[idx], rooms_scores[k[idx]] / nr_rooms[k[idx]]
     return None, 0
 
 
-def mean_difference(points, img):
-    mask_1 = create_mask(points, img, False)
-    mask_2 = create_mask(points, img, True)
-    mean_1 = cv2.mean(img, mask_1)
-    mean_2 = cv2.mean(img, mask_2)
-    diff = (mean_1[0] - mean_2[0])**2 + (mean_1[1] - mean_2[1])**2 + (mean_1[2] - mean_2[2])**2
-
-    return diff
-
-
-def precision(points, img):
-    mask = create_mask(points, img, False)
-    return f1_score(mask.flatten()//255, mask.flatten()//255)
-
-
 def to_polar(line):
-    '''Convert lines in Cartesian system to lines in polar system.
-    '''
+    """ Convert lines in Cartesian system to lines in polar system. """
     x1, y1 = line[0], line[1]
     x2, y2 = line[2], line[3]
 
@@ -69,22 +58,17 @@ def to_polar(line):
     return rho, theta
 
 
-def to_cartesian(line):
-    '''Convert lines in polar system to lines in Cartesian system.
-    '''
-    rho, theta = line[0], line[1]
-    a = np.cos(theta)
-    b = np.sin(theta)
-    x0 = a*rho
-    y0 = b*rho
-    x1 = int(x0 + 1000*(-b))
-    y1 = int(y0 + 1000*(a))
-    x2 = int(x0 - 1000*(-b))
-    y2 = int(y0 - 1000*(a))
-    return x1, y1, x2, y2
-
-
 def euclid_dist(p1, p2):
+    """ Return the Euclidean distance of two 2D points in orthogonal 
+        coordinates
+
+    Arguments:
+        p1 -- Tuple of (x, y) coordinates
+        p2 -- Tuple of (x, y) coordinates
+
+    Returns:
+        float -- The Euclidean distance in pixels
+    """
     x1 = p1[0]
     y1 = p1[1]
     x2 = p2[0]
@@ -92,43 +76,22 @@ def euclid_dist(p1, p2):
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
-def approx_dist(p1, p2):
-    return max(abs(p1[0] - p2[0]), abs(p1[1] - p2[1]))
-
-
-def eliminate_duplicates(lines, rho_threshold=10, theta_threshold=.1):
-    '''Remove similar lines, based on a threshold
-    '''
-    eliminated = np.zeros(len(lines), dtype=bool)
-
-    for i, j in itertools.combinations(range(len(lines)), 2):
-        if eliminated[i] or eliminated[j]:
-            continue
-
-        r1, theta1 = to_polar(lines[i])
-        r2, theta2 = to_polar(lines[j])
-
-        if abs(r1 - r2) < rho_threshold and min(abs(theta1 - theta2), abs(theta2 - theta1)) < theta_threshold:
-            eliminated[i] = True
-
-    return lines[eliminated == False]
-
-
-def intersections_polar(a, b):
-    '''Calculate intersection (cartesian) between two lines in polar form
-    '''
-    return intersections(to_cartesian(a), to_cartesian(b))
-
-
 def intersections(a, b):
-    '''Calculate intersection between two lines in cartesian form
-    '''
+    """ Calculate intersection between two lines in cartesian form
+
+    Arguments:
+        a - array of [x1, y1, x2, y2] defining a line
+        b - array of [x1, y1, x2, y2] defining a line
+
+    Returns:
+        (x, y) -- The intersection point. If lines are parallel, (-1, -1) is 
+                  returned
+    """
     x1, y1,  x2,  y2 = a[0], a[1], a[2], a[3]
     x3, y3, x4, y4 = b[0], b[1], b[2], b[3]
     d = ((x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4))
 
     if d:
-        d = float(d)
         x = ((x1 * y2 - y1 * x2) * (x3 - x4) -
              (x1 - x2) * (x3 * y4 - y3 * x4)) / d
         y = ((x1 * y2 - y1 * x2) * (y3 - y4) -
@@ -139,15 +102,21 @@ def intersections(a, b):
 
 
 def out_of_ratio(width, height, ratio):
+    """ Return a boolean to check `width` and `height` against a ratio """
     return width > 0 \
         and height > 0  \
         and (width/height < ratio or height/width < ratio)
 
 
 def bounding_rect(lines, hparams, theta_threshold=.1):
-    '''Pick 4 lines which are most likely to be the edges of the painting,
-    used for perspective correction
-    '''
+    """ Algorithm 1
+        Pick 4 lines which are most likely to be the edges of the painting,
+        used for perspective correction
+
+    Returns:
+        Numpy array of shape (4,2) containing 4 corners, ordered clockwise from
+        the top left.
+    """
     ratio = hparams['ratio']
     if len(lines) < 4:
         logging.warning(
@@ -279,6 +248,14 @@ def bounding_rect(lines, hparams, theta_threshold=.1):
 
 
 def bounding_rect_2(lines, hparams, shape, theta_threshold=.1):
+    """ Algorithm 2
+        Pick 4 lines which are most likely to be the edges of the painting,
+        used for perspective correction.
+
+    Returns:
+        Numpy array of shape (4,2) containing 4 corners, ordered clockwise from
+        the top left.
+    """
     lines_polar = [to_polar(l) for l in lines]
 
     buckets = [[] for _ in range(18)]
@@ -323,7 +300,6 @@ def bounding_rect_2(lines, hparams, shape, theta_threshold=.1):
                     break
             bad_ratio = out_of_frame
 
-
     line1 = first[indices[0]]
     line2 = second[indices[1]]
     line3 = first[indices[2]]
@@ -353,21 +329,16 @@ def bounding_rect_2(lines, hparams, shape, theta_threshold=.1):
     return corners
 
 
-def create_mask(points, img, invert=True):
-    '''Create a binary mask 
-    '''
-    points = perspective.order_points(points).astype('int32')
-    pts = points.reshape((-1, 1, 2))
-    if not invert:
-        mask = np.zeros((img.shape[0], img.shape[1]), dtype='uint8')
-        mask = cv2.fillPoly(mask, [pts], (255, 255, 255))
-    else:
-        mask = np.full((img.shape[0], img.shape[1]), 255, dtype='uint8')
-        mask = cv2.fillPoly(mask, [pts], (0, 0, 0))
-    return mask
-
-
 def angle_betw_lines(line1, line2):
+    """Return the angle (radians) between two lines
+
+    Arguments:
+        line1 -- an 2D array of [[x1, y1], [x2, y2]] defining a line
+        line2 -- an 2D array of [[x1, y1], [x2, y2]] defining a line
+
+    Returns:
+        float -- An angle in radians between 0 (not included) and pi/2
+    """
     # equation as "y = ax + b"
     # a = (y2 - y1)/(x2 - x1)
     dx1 = (line1[1, 0] - line1[0, 0])
@@ -386,44 +357,6 @@ def angle_betw_lines(line1, line2):
     return phi
 
 
-def pnt_above_line(pt, ln):
-    """a point (xp, yp) lies above a line if (y1-y2)yp + (x1-x2)xp + (x1y2 - x2y1)> 0"""
-    if ((ln[0][1] - ln[1][1]) * pt[1] + (ln[0][0] - ln[1][0]) * pt[0] +
-            ((ln[0][0] * ln[1][1]) - (ln[1][0] * ln[0][1]))) > 0:
-        print("above")
-        return True
-    print("below")
-    return False
-
-
-def pnt_below_line(pt, ln):
-    """a point (xp, yp) lies above a line if (y1-y2)yp + (x1-x2)xp + (x1y2 - x2y1)> 0"""
-    if ((ln[0][1] - ln[1][1]) * pt[1] + (ln[0][0] - ln[1][0]) * pt[0] +
-            ((ln[0][0] * ln[1][1]) - (ln[1][0] * ln[0][1]))) < 0:
-        print("below")
-        return True
-    print("above")
-    return False
-
-
-def pnt_left_line(pt, ln):
-    # a point (xp, yp) lies left of a line if ((x2-x1)*(yp-y1))-((y2-y1)*(xp-x1)) > 0
-    if (((ln[1][0] - ln[0][0]) * (pt[1] - ln[0][1])) - ((ln[1][1] - ln[0][1]) * (pt[0] - ln[0][0]))) > 0:
-        print("left")
-        return True
-    print("right")
-    return False
-
-
-def pnt_right_line(pt, ln):
-    # a point (xp, yp) lies left of a line if ((x2-x1)*(yp-y1))-((y2-y1)*(xp-x1)) > 0
-    if (((ln[1][0] - ln[0][0]) * (pt[1] - ln[0][1])) - ((ln[1][1] - ln[0][1]) * (pt[0] - ln[0][0]))) < 0:
-        print("right")
-        return True
-    print("left")
-    return False
-
-
 def point_inside_quad(pt, quad):
     max_x1 = max(quad[0][0], quad[1][0], quad[2][0], quad[3][0])
     min_x1 = min(quad[0][0], quad[1][0], quad[2][0], quad[3][0])
@@ -435,9 +368,6 @@ def point_inside_quad(pt, quad):
 
 
 def no_intersection(quad1, quad2):
-    # still need to implement this
-    #quad1 = perspective.order_points(quad1)
-    #quad2 = perspective.order_points(quad2)
     max_x1 = max(quad1[0][0], quad1[1][0], quad1[2][0], quad1[3][0])
     min_x1 = min(quad1[0][0], quad1[1][0], quad1[2][0], quad1[3][0])
     max_y1 = max(quad1[0][1], quad1[1][1], quad1[2][1], quad1[3][1])
@@ -459,6 +389,14 @@ def draw_quad(pts, image, col):
 
 
 def calculate_area(pts):
+    """Calculate the inside area of a tetragon
+
+    Arguments:
+        pts -- (4,2) array containing 4 corners in orhogonal coordinates
+
+    Returns:
+        float -- The area in pixels
+    """
     pts = perspective.order_points(pts)
     a = euclid_dist(pts[2], pts[3])
     b = euclid_dist(pts[3], pts[0])
@@ -556,16 +494,34 @@ def get_intersection_pts(pts1, pts2):
     return np.array([(-1, -1), (-1, -1), (-1, -1), (-1, -1)])
 
 
-def calculate_intersection(pts1, pts2):
-    if not no_intersection(pts1, pts2):
-        pts3 = get_intersection_pts(pts1, pts2)
+def calculate_intersection(tetragon1, tetragon2):
+    """Calculate the intersection area of two tetragons
+
+    Arguments:
+        tetragon1 -- Array of shape (4,2) defining the first polygon
+        tetragon2 -- Array of shape (4,2) defining the second polygon
+
+    Returns:
+        float -- The intersection area in pixels
+    """
+    if not no_intersection(tetragon1, tetragon2):
+        pts3 = get_intersection_pts(tetragon1, tetragon2)
         pts3 = perspective.order_points(pts3)
         intersection = calculate_area(pts3)
         return intersection
     return 0
 
 
-def calculate_union(pts1, pts2):
-    union = calculate_area(pts1) + calculate_area(pts2) - \
-        calculate_intersection(pts1, pts2)
+def calculate_union(tetragon1, tetragon2):
+    """Calculate the union area of two tetragons
+
+    Arguments:
+        tetragon1 -- Array of shape (4,2) defining the first polygon
+        tetragon2 -- Array of shape (4,2) defining the second polygon
+
+    Returns:
+        float -- The union area in pixels
+    """
+    union = calculate_area(tetragon1) + calculate_area(tetragon2) - \
+        calculate_intersection(tetragon1, tetragon2)
     return union

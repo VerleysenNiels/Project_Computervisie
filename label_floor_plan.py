@@ -1,13 +1,17 @@
+
+""" Utility script for labeling the rooms of floor plan
+
+    First the numbered rooms, then the lettered rooms, then room II
+"""
+
 import cv2
 import csv
 import numpy as np
 
 imname = "Groundplan"
 
-#First the numbered rooms, then the lettered rooms, then room II
 
-
-def draw_point (event, x, y, flags, points):
+def draw_point(event, x, y, flags, points):
     if event == cv2.EVENT_LBUTTONDOWN:
         cv2.circle(img, (x, y), 3, (0, 255, 0), thickness=-1)
         cv2.imshow(imname, img)
@@ -29,14 +33,15 @@ def draw_point (event, x, y, flags, points):
                 if len(t) == 1:
                     tel = chr(ord(t) + 1)
                 else:
-                    tel = "TMR" #Too Many Rooms
+                    tel = "TMR"  # Too Many Rooms
         print(tel)
         row = np.array([tel, str(x), str(y)])
         points.append(row)
 
 
-with open("rooms.csv", mode = "w") as pandc:
-    corner_writer = csv.writer(pandc, delimiter=";", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
+with open("rooms.csv", mode="w") as pandc:
+    corner_writer = csv.writer(
+        pandc, delimiter=";", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
     img = cv2.imread("images/groundplan.png")
     cv2.namedWindow(imname)
     pts = []

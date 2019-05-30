@@ -1,13 +1,5 @@
-import cv2
-import io
-import math
-import csv
-import perspective
-import math
-import numpy as np
-import math
+""" Utility script for labeling painting corners.
 
-"""
     Run this with the right settings for the folder to read and the csv to write
     and it will show every image in turn. When it shows an image, click the four corners
     (only the first four are recorded, so do it right) and then press any button to go
@@ -15,8 +7,14 @@ import math
     Also, don't overwrite existing files.
     
     Corner coordinates are in the images scaled to 1080
-    (had to scale them down to 700 because I have a shitty screen - Ralph).
 """
+
+import csv
+
+import cv2
+import numpy as np
+
+import src.utils.io as io
 
 scale = 1.0
 

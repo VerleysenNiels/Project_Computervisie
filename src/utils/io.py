@@ -1,3 +1,4 @@
+import csv
 import logging
 import os
 
@@ -8,8 +9,7 @@ import src.utils.viz
 
 
 def imread(path, resize=True, bw=False):
-    """Read an image and resize to 1080p
-    """
+    """ Read an image and resize to 1080p. """
     logging.info('Reading ' + path)
     img = cv2.imread(path)
     if resize:
@@ -24,7 +24,7 @@ def imread(path, resize=True, bw=False):
 
 
 def imread_folder(folder, resize=True, bw=False):
-    """Read all images from a directory into a vector
+    """ Read all images from a directory into a vector
     Returns:
         An iterator of `(path, image)` tuples
     """
@@ -37,15 +37,14 @@ def imread_folder(folder, resize=True, bw=False):
 
 
 def imwrite(path, image):
-    """Write image to path, creating directories if necessary
-    """
+    """ Write image to path, creating directories if necessary """
     if not os.path.exists(os.path.dirname(path)):
         os.makedirs(os.path.dirname(path))
     cv2.imwrite(path, image)
 
 
 def read_video(path, interval=15):
-    """Read a video file frame by frame. An interval can be set for frame sampling
+    """ Read a video file frame by frame. An interval can be set for frame sampling
     Returns:
         An iterator of frames
     """
@@ -64,7 +63,7 @@ def read_video(path, interval=15):
 
 
 def read_room_coords(file):
-    """Read room coordinates from a csv
+    """ Read room coordinates from a csv
 
     Returns:
         dict -- Room coordinates indexed by room string

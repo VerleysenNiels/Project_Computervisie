@@ -9,14 +9,14 @@ class RoomGraph:
         self.rooms = {}
         self.read_file(file)
 
-        """Necessary lists for algorithm"""
+        # Necessary lists for algorithm
         self.current_path = []
         self.path_indices = []
         self.detected_rooms = []
         self.detected_counters = []
 
     def read_file(self, file):
-        """Read a file with the neighours for every room"""
+        """ Read a file with the neighours for every room. """
         self.rooms.clear()
 
         with open(file, mode='r') as csv_file:
@@ -30,25 +30,21 @@ class RoomGraph:
             logging.debug(self.rooms)
 
     def transition_possible(self, start, goal):
-        """Check if starting point and goal are neighbours or neighbours of neighbours (in this case a room was skipped)"""
+        """ Check if starting point and goal are neighbours or neighbours of 
+            neighbours (in this case a room was skipped) 
+        """
         # Check if direct neighbour, this is the most likely transition
         if self.rooms.get(start):
             for neighbour in self.rooms.get(start):
                 if neighbour == goal:
                     return True
-
-        # Goal is not a direct neighbour, check if a room was skipped (for instance by rushing through it)
-        # NOTE: currently not used because it causes more errors (there are more possible transitions)
-        """for neighbour in ROOMS.get(start):
-            for neighbourOfNeighbour in ROOMS.get(neighbour):
-                if neighbourOfNeighbour == goal:
-                    return True
-        """
         # Still not found -> most likely not a real transition
         return False
 
     def highest_likely_path(self, guessed_room, confidence):
-        """DETERMINE FROM THE LIST OF ROOMS AND CORRESPONDING COUNTERS THE MOST LIKELY FOLLOWED PATH"""
+        """ Determine the most likely followed path from the list of rooms and
+            corresponding counters.
+        """
 
         # Update counter:
         index = self.update_counter_room(guessed_room, confidence)
@@ -105,9 +101,10 @@ class RoomGraph:
             return False, self.current_path
 
     def update_counter_room(self, room, confidence):
-        """"
-            UPDATE COUNTER OF ROOM OR ADD NEW COUNTER FOR ROOM
-            RETURNS THE INDEX OF THE ROOM
+        """ Update counter of room or add new counter for room.
+
+        Returns:
+            int -- The index of the room
         """
         index = len(self.detected_counters) - 1
 

@@ -24,6 +24,18 @@ from src.inference.room_graph import RoomGraph
 
 
 def infer_frame(frame, extraction, descriptors, histograms, hparams):
+    """ Predict the room given 1 frame of the video
+
+    Arguments:
+        frame -- The BGR video frame
+        extraction {FeatureExtraction} -- an instance of the FeatureExtraction class
+        descriptors {dict} -- The collection of descriptors, indexed by image path
+        histograms {dict} -- The collection of histograms, indexed by image path
+        hparams {dict} -- The full hyper parameters dictionary object
+
+    Returns:
+        (prediction, confidence, frame_annotated)
+    """
     points, frame = feature_detection.detect_perspective(
         frame, hparams['video'])
 
@@ -59,7 +71,15 @@ def infer_frame(frame, extraction, descriptors, histograms, hparams):
 
 
 def infer(args, hparams, descriptors, histograms):
+    """Infer video
 
+    Arguments:
+        args -- argparse CLI argumense
+        hparams {dict} -- The full hyper parameters dictionary object
+        descriptors {dict} -- The collection of descriptors, indexed by image path
+        histograms {dict} -- The collection of histograms, indexed by image path
+
+    """
     measurementMode = args.ground_truth is not None and os.path.isfile(
         args.ground_truth)
 
@@ -184,5 +204,3 @@ def infer(args, hparams, descriptors, histograms):
     cv2.destroyAllWindows()
     if measurementMode:
         logging.info('Global accuracy: %.1f%%', 100*frames_correct / frames)
-
-    return frames_correct / frames

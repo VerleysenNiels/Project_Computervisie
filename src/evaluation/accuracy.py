@@ -12,13 +12,13 @@ import src.utils.viz as viz
 
 
 class IoU():
-    '''Intersection-over-Union accuracy calculator
-    '''
+    """ Intersection-over-Union accuracy class """
 
     def __init__(self, images_dir, hparams):
         """        
         Arguments:
             images_dir {str} -- Path to original images
+            hparams {dict} -- All hyper parameters
         """
         self.hparams = hparams
         self.images_dir = images_dir
@@ -29,7 +29,7 @@ class IoU():
 
         Arguments:
             csv_path {str} -- Path to ground truth csv
-            log_file_path {str} -- Path to write results to (default: {None})
+            log_file_path {str} -- Path to write results to (default: None)
 
         Returns:
             float -- average IoU
@@ -74,9 +74,9 @@ class IoU():
         return avg_iou
 
     def compute(self, corners_pred, corners_exp):
-        '''Compute the IoU given an array of predicted corners and an array
-           of expected corners (ground truth)
-        '''
+        """ Compute the IoU given an array of predicted corners and an array
+            of expected corners (ground truth)
+        """
         if len(corners_pred) == 4:
             inters = math.calculate_intersection(
                 corners_exp, corners_pred)

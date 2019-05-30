@@ -3,6 +3,11 @@ import logging
 
 
 class VideoGroundTruth:
+    """The VideoGroundTruth class checkes room predictions against a ground truth csv 
+
+    Returns:
+        [type] -- [description]
+    """
 
     def __init__(self):
         self.index = 0   # Index to framenumber when next transition happens
@@ -10,7 +15,7 @@ class VideoGroundTruth:
         self.rooms = []  # Previous room at each transition
 
     def read_file(self, file):
-        """Read a file with the transitions between rooms and at which frame in the video they happen"""
+        """ Read a file with the transitions between rooms and at which frame in the video they happen """
         self.clear()
 
         with open(file, mode='r') as csv_file:

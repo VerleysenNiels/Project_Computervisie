@@ -3,6 +3,7 @@ import logging
 
 
 class RoomGraph:
+    """ Class for inference on room transitions given painting predictions. """
 
     def __init__(self, file):
         self.rooms = {}
@@ -53,7 +54,7 @@ class RoomGraph:
         index = self.update_counter_room(guessed_room, confidence)
 
         # Case 1: guessed room is last room from path
-        if index == len(self.current_path) -1:
+        if index == len(self.current_path) - 1:
             return False, self.current_path
 
         # Case 2: new room can be added to previous path
@@ -63,13 +64,13 @@ class RoomGraph:
             return True, self.current_path
 
         # Check if a segment on the end of the current path should be changed
-        path_index = len(self.current_path) -2
+        path_index = len(self.current_path) - 2
         room_score = self.detected_counters[index]
         segment_score = self.detected_counters[self.path_indices[path_index]]
 
         finished = False
         while not finished and room_score > segment_score:
-            if path_index == -1 or self.transition_possible(guessed_room, self.current_path[path_index -1]):
+            if path_index == -1 or self.transition_possible(guessed_room, self.current_path[path_index - 1]):
                 # Case 3: segment on the end of the current path should be replaced by the guessed room
 
                 # Remove segment from path
@@ -108,7 +109,7 @@ class RoomGraph:
             UPDATE COUNTER OF ROOM OR ADD NEW COUNTER FOR ROOM
             RETURNS THE INDEX OF THE ROOM
         """
-        index = len(self.detected_counters) -1
+        index = len(self.detected_counters) - 1
 
         # Find position of counter or determine that new counter needs to be added
         found = False
@@ -120,11 +121,11 @@ class RoomGraph:
 
         if found:
             # Update counter
-            self.detected_counters[index] += 1 #confidence
+            self.detected_counters[index] += 1  # confidence
         else:
             # Add new counter
             index = len(self.detected_counters)
             self.detected_rooms.append(room)
-            self.detected_counters.append(1) #confidence)
+            self.detected_counters.append(1)  # confidence)
 
         return index

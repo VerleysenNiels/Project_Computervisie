@@ -76,8 +76,8 @@ def draw_path_line(img, room, nextroom, room_coords):
 
     Arguments:
         img -- The image to draw on
-        room {string} -- The starting room
-        nextroom {string} -- The ending room
+        room {str} -- The starting room
+        nextroom {str} -- The ending room
         room_coords {dict} -- The coordinates of the rooms
     """
     cv2.line(img, room_coords[room],

@@ -7,6 +7,7 @@ import pickle
 import platform
 import shutil
 import sys
+import time
 
 import cv2
 import numpy as np
@@ -142,13 +143,38 @@ class PaintingClassifier(object):
 
         correct = 0
         total = 0
+        total_time = 0
         descriptors, histograms = self._get_descriptors_histograms()
         file = open(os.path.join(
-            args.output_dir, 'accuracy-corners.csv'), 'w+')
+            args.output_dir, 'accuracy-hall.csv'), 'w+')
         file.write('Path;Expected;Predicted\n')
+        extraction = FeatureExtraction()
+        hparams = self.hparams
         for path, img in io.imread_folder(args.ground_truth_dir, resize=False):
-            best, best_score, img = infer_frame(
-                img, FeatureExtraction(), descriptors, histograms, self.hparams)
+            start_time = time.time()
+            best = None
+            best_score = 0
+            descriptor = extraction.extract_keypoints(img, hparams)
+
+            logits_descriptor = []
+            labels = []
+            for pathd in descriptors:
+                if descriptors[pathd] is not None:
+                    score_key = extraction.match_keypoints(
+                        descriptor, descriptors[pathd], hparams)
+                    logits_descriptor.append(score_key)
+                    labels.append(pathd)
+
+            scores = logits_descriptor
+            best_idx = np.argmax(scores)
+            best_score = scores[best_idx]
+            best = labels[best_idx]
+            end_time = time.time()
+            total_time += (end_time - start_time)
+            total += 1
+            logging.info('Average matching speed: %.2fs per frame',
+                         total_time/total)
+
             if best:
                 predicted = os.path.basename(os.path.dirname(best))
             else:
@@ -159,7 +185,6 @@ class PaintingClassifier(object):
             file.write(path + ';' + expected + ';' + predicted + '\n')
             if expected == predicted:
                 correct += 1
-            total += 1
             logging.info('%d/%d (%.2f%%) correct', correct,
                          total, 100 * correct / total)
             viz.imshow(img, name='Frame')

@@ -98,7 +98,8 @@ class FeatureExtraction(object):
             detector = cv2.xfeatures2d_SURF.create(
                 hessianThreshold=params['keypoint_thresh'])
         elif params['type'] == 'SIFT':
-            detector = cv2.xfeatures2d_SIFT.create()
+            detector = cv2.xfeatures2d_SIFT.create(
+                nfeatures=params['keypoint_thresh'])
         else:
             logging.critical(
                 'Unknown feature_matching.type: %s', params['type'])
@@ -120,20 +121,10 @@ class FeatureExtraction(object):
                 'Unknown feature_matching.type: %s', params['type'])
             exit(1)
 
-        if params['match_knn'] == False:
-            matches = matcher.match(descriptors_im, descriptors_db)
-            matches = sorted(matches, key=lambda x: x.distance)
-            n = params['matches_amount']
-            good_matches = matches[n:]
-        elif descriptors_im is not None:
-            matches = matcher.knnMatch(descriptors_db, descriptors_im, k=2)
-            # store all the good matches as per Lowe's ratio test.
-            good_matches = []
-            for m, n in matches:
-                if m.distance < 0.7 * n.distance:
-                    good_matches.append(m)
-        else:
-            return 0
+        matches = matcher.match(descriptors_im, descriptors_db)
+        matches = sorted(matches, key=lambda x: x.distance)
+        n = params['matches_amount']
+        good_matches = matches[n:]
 
         if len(good_matches) == 0:
             return 0
@@ -159,8 +150,8 @@ class FeatureExtraction(object):
         # -1 = no similarity
         # +1 = perfect similarity
         CV_COMP_INTERSECT = 2
-        score = cv2.compareHist(hist1, hist2, method=CV_COMP_INTERSECT)
-        return (score)
+        score = cv2.compareHist(hist1, hist2, method=cv2.HISTCMP_CORREL)
+        return (1+score)/2
 
 
 if __name__ == "__main__":
